@@ -11,6 +11,7 @@ install() {
 (cd $SRC; git submodule init && git submodule update)
 mkdir -p $SRC/emacs.d/compy-specific
 touch $SRC/emacs.d/compy-specific/init.el
+touch $SRC/compy-specific.sh
 install emacs.d
 install emacs.d/.emacs
 install gitconfig
