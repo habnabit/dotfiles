@@ -23,7 +23,7 @@ source $ZSH/oh-my-zsh.sh
 # Customize to your needs...
 
 source $HOME/.dotfiles/compy-specific.sh
-export PREFIX="$HOME/.local/bin:$HOME/.local/sbin:$PREFIX"
+export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 bindkey '\e.' insert-last-word
 
 alias HEAD="curl --head"
