@@ -1,0 +1,21 @@
+[user]
+	name = Aaron Gallagher
+	email = habnabit@gmail.com
+[rerere]
+	enabled = 1
+[alias]
+	st = status
+	stat = status
+	ci = commit -v
+	ca = commit -av
+	cam = commit --amend -v
+	po = push origin
+        p4m = mergetool --tool=p4merge
+        backup = reset --hard HEAD^
+        up = pull --ff-only
+        mc = merge --no-ff --no-commit
+        uncommit = reset --mixed HEAD^
+[push]
+	default = current
+[core]
+	excludesfile = ~/.gitignore_global
