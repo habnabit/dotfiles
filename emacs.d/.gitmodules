@@ -1,6 +1,0 @@
-[submodule "nxhtml"]
-	path = nxhtml
-	url = https://github.com/emacsmirror/nxhtml.git
-[submodule "twittering-mode"]
-	path = twittering-mode
-	url = https://github.com/hayamiz/twittering-mode.git
