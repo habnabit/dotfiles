@@ -1,5 +1,6 @@
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
+(add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
 (load "~/.emacs.d/compy-specific/init.el")
 
 (require 'twittering-mode)

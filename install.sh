@@ -8,6 +8,9 @@ install() {
     $LN -s "$SRC/$1" "$DST/.$(basename $1 | sed 's:^\.::')"
 }
 
+(cd $SRC; git submodule init && git submodule update)
+mkdir -p $SRC/emacs.d/compy-specific
+touch $SRC/emacs.d/compy-specific/init.el
 install emacs.d
 install emacs.d/.emacs
 install gitconfig
