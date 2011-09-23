@@ -1,6 +1,6 @@
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
-(load "~/.emacs.d/compy-specific.el")
+(load "~/.emacs.d/compy-specific/init.el")
 
 (require 'twittering-mode)
 (require 'css-mode)
