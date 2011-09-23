@@ -12,3 +12,4 @@ install emacs.d
 install emacs.d/.emacs
 install gitconfig
 install gitignore_global
+install zshrc
