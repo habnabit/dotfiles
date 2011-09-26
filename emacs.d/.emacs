@@ -1,8 +1,10 @@
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
 (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
+(add-to-list 'load-path "~/.emacs.d/magit")
 (load "~/.emacs.d/compy-specific/init.el")
 
+(require 'magit)
 (require 'twittering-mode)
 (require 'css-mode)
 (require 'moccur-edit)
@@ -85,6 +87,7 @@
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
 (global-set-key (kbd "RET") 'newline-and-indent)
 (global-set-key (kbd "C-c C-3") 'server-edit)
+(global-set-key (kbd "C-c C-w") 'magit-status)
 
 (defun show-fly-err-at-point ()
   "If the cursor is sitting on a flymake error, display the

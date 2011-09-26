@@ -7,3 +7,6 @@
 [submodule "twittering-mode"]
 	path = emacs.d/twittering-mode
 	url = https://github.com/hayamiz/twittering-mode.git
+[submodule "emacs.d/magit"]
+	path = emacs.d/magit
+	url = https://github.com/magit/magit.git

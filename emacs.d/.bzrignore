@@ -1,6 +1,0 @@
-./games
-./auto-save-list
-./backups
-./compy-specific.el
-*.elc
-./server
