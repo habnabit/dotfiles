@@ -75,3 +75,16 @@ h.it () {
     fi
     rsync -abv --progress "$@" "habnab.it:public_html/$dest"
 }
+
+reload_tmux_vars() {
+  if [[ -n $TMUX ]]; then
+    NEW_SSH_AUTH_SOCK=`tmux showenv|grep "^SSH_AUTH_SOCK"|cut -d = -f 2`
+    if [[ -n $NEW_SSH_AUTH_SOCK ]] && [[ -S $NEW_SSH_AUTH_SOCK ]]; then
+      SSH_AUTH_SOCK=$NEW_SSH_AUTH_SOCK
+    fi
+    NEW_DISPLAY=`tmux showenv|grep "^DISPLAY"|cut -d = -f 2`
+    if [[ -n $NEW_DISPLAY ]]; then
+      DISPLAY=$NEW_DISPLAY
+    fi
+  fi
+}
