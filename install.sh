@@ -3,8 +3,8 @@ set -e
 SRC=$(dirname $0)
 DST=$HOME
 LN='echo ln'
-if [ "$1" = "-d" ]; then LN='ln -v'; fi
-if [ "$1" = "-f" ]; then LN='ln -fsv'; fi
+if [ "$1" = "-d" ]; then LN='ln -nv'; fi
+if [ "$1" = "-f" ]; then LN='ln -fsnv'; fi
 install() {
     $LN -s "$SRC/$1" "$DST/.$(basename $1 | sed 's:^\.::')"
 }
