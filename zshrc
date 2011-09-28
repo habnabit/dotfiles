@@ -26,6 +26,8 @@ source $HOME/.dotfiles/compy-specific.sh
 export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 bindkey '\e.' insert-last-word
 
+export OCAMLRUNPARAM=b
+
 alias HEAD="curl --head"
 
 t () {
