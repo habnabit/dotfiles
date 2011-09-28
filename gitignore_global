@@ -1,1 +1,9 @@
 *~
+*.tre
+*.jplace
+*.csv
+.DS_Store
+*.#*
+*.orig
+_aptx_configuration_file
+[xyz].ml
