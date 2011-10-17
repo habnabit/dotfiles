@@ -1,3 +1,5 @@
+# -*- sh -*-
+
 # Path to your oh-my-zsh configuration.
 export ZSH=$HOME/.dotfiles/oh-my-zsh
 
@@ -9,7 +11,7 @@ export ZSH_THEME="hab"
 # export CASE_SENSITIVE="true"
 
 # Comment this out to disable weekly auto-update checks
-# export DISABLE_AUTO_UPDATE="true"
+export DISABLE_AUTO_UPDATE="true"
 
 # Uncomment following line if you want to disable colors in ls
 # export DISABLE_LS_COLORS="true"
@@ -30,6 +32,15 @@ export OCAMLRUNPARAM=b
 
 alias HEAD="curl --head"
 
+hutchup () {
+    open -a Propane &
+    open -a RescueTime &
+}
+
+hutchdown () {
+    killall Propane RescueTime
+}
+
 t () {
     host=$1
     shift
@@ -39,17 +50,13 @@ t () {
 irc () {
     ssh -tt \
         -D 1080 \
+        "$@" \
         carlotta \
         "~/.local/bin/tmux attach -t irc"
 }
 
 irc443 () {
-    ssh -tt \
-        -p 443 \
-        -D 1080 \
-        -o "ServerAliveInterval 60" \
-        carlotta \
-        "~/.local/bin/tmux attach -t irc"
+    irc -p 443 -o "ServerAliveInterval 60" "$@"
 }
 
 unpack () {
