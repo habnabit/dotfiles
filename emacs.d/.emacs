@@ -3,6 +3,7 @@
 (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
 (add-to-list 'load-path "~/.emacs.d/magit")
 (load "~/.emacs.d/compy-specific/init.el")
+(load "~/.emacs.d/nxhtml/autostart.el")
 
 (require 'magit)
 (require 'twittering-mode)
@@ -22,6 +23,7 @@
 (show-paren-mode 1)
 (column-number-mode 1)
 (global-hl-line-mode 1)
+(add-to-list 'completion-ignored-extensions ".annot")
 (ido-mode 1)
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
