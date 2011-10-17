@@ -24,6 +24,7 @@
 (column-number-mode 1)
 (global-hl-line-mode 1)
 (add-to-list 'completion-ignored-extensions ".annot")
+(add-to-list 'completion-ignored-extensions ".orig")
 (ido-mode 1)
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
