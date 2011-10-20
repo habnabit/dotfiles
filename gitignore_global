@@ -7,3 +7,4 @@
 *.orig
 _aptx_configuration_file
 [xyz].ml
+*.py[co]
