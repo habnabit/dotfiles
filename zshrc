@@ -97,3 +97,7 @@ reload_tmux_vars() {
     fi
   fi
 }
+
+gffm () {
+	git merge --ff-only ${1:-origin}/$(current_branch)
+}
