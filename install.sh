@@ -3,13 +3,18 @@ set -e
 SRC=$(dirname $0)
 DST=$HOME
 LN='echo ln'
+if [ "$1" = "-i" ]; then LN='ln -nv'; move_aside=1; mkdir "$SRC/old"; fi
 if [ "$1" = "-d" ]; then LN='ln -nv'; fi
-if [ "$1" = "-f" ]; then LN='ln -fsnv'; fi
+if [ "$1" = "-f" ]; then LN='ln -fnv'; fi
 install() {
-    $LN -s "$SRC/$1" "$DST/.$(basename $1 | sed 's:^\.::')"
+    dest="$DST/.$(basename $1 | sed 's:^\.::')"
+    if [ "$move_aside" -a -e "$dest" ]; then
+        mv -v "$dest" "$SRC/old"
+    fi
+    $LN -s "$SRC/$1" "$dest"
 }
 
-(cd $SRC; git submodule init && git submodule update)
+(cd $SRC; git submodule update --init --recursive)
 (cd $SRC/oh-my-zsh; gcc parse-git-status.c -o parse-git-status)
 mkdir -p $SRC/emacs.d/compy-specific
 touch $SRC/emacs.d/compy-specific/init.el
