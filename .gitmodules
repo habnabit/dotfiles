@@ -3,7 +3,7 @@
 	url = git://github.com/habnabit/oh-my-zsh.git
 [submodule "nxhtml"]
 	path = emacs.d/nxhtml
-	url = git://github.com/emacsmirror/nxhtml.git
+	url = git://github.com/habnabit/nxhtml.git
 [submodule "twittering-mode"]
 	path = emacs.d/twittering-mode
 	url = git://github.com/hayamiz/twittering-mode.git
