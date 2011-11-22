@@ -29,6 +29,7 @@ export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 bindkey '\e.' insert-last-word
 
 export OCAMLRUNPARAM=b
+[[ -z $LANG ]] && export LANG=en_US.UTF-8
 
 alias HEAD="curl --head"
 
@@ -99,5 +100,5 @@ reload_tmux_vars() {
 }
 
 gffm () {
-	git merge --ff-only ${1:-origin}/$(current_branch)
+    git merge --ff-only ${1:-origin}/$(current_branch)
 }
