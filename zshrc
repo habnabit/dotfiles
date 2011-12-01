@@ -21,7 +21,7 @@ export DISABLE_AUTO_UPDATE="true"
 plugins=(git zsh-syntax-highlighting)
 
 if [[ $TERM == "dumb" ]]; then
-    PS1="[\u@\h \w]$ "
+    PS1="[%n@%m %~] $ "
 else
     source $ZSH/oh-my-zsh.sh
 fi
