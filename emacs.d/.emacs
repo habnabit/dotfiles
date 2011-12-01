@@ -72,7 +72,6 @@
                 ".elc")))
 (add-hook 'dired-mode-hook (lambda () (dired-omit-mode 1)))
 
-(add-hook 'find-file-hook 'flymake-find-file-hook)
 (when (load "flymake" t)
   (defun flymake-pycheckers-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
@@ -83,6 +82,7 @@
       (list "~/.emacs.d/pycheckers.py" (list local-file))))
   (add-to-list 'flymake-allowed-file-name-masks
                '("\\.py\\'" flymake-pycheckers-init)))
+(add-hook 'python-mode-hook (lambda () (flymake-mode t)))
 
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)

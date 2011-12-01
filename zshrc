@@ -20,7 +20,11 @@ export DISABLE_AUTO_UPDATE="true"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 plugins=(git zsh-syntax-highlighting)
 
-source $ZSH/oh-my-zsh.sh
+if [[ "${INSIDE_EMACS/*tramp*/tramp}" == "tramp" ]]; then
+    # eventually might want to do tramp-specific things
+else
+    source $ZSH/oh-my-zsh.sh
+fi
 
 # Customize to your needs...
 
