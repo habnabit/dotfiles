@@ -10,3 +10,6 @@
 [submodule "emacs.d/magit"]
 	path = emacs.d/magit
 	url = git://github.com/magit/magit.git
+[submodule "emacs.d/flymake"]
+	path = emacs.d/flymake
+	url = git://github.com/illusori/emacs-flymake.git

@@ -2,9 +2,11 @@
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
 (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
 (add-to-list 'load-path "~/.emacs.d/magit")
+(add-to-list 'load-path "~/.emacs.d/flymake")
 (load "~/.emacs.d/compy-specific/init.el")
 (load "~/.emacs.d/nxhtml/autostart.el")
 
+(require 'flymake)
 (require 'magit)
 (require 'twittering-mode)
 (require 'css-mode)
@@ -56,6 +58,8 @@
       (concat user-temporary-file-directory ".auto-saves-"))
 (setq auto-save-file-name-transforms
       `((".*" ,user-temporary-file-directory t)))
+(setq flymake-run-in-place nil)
+(setq twittering-reverse-mode t)
 
 (require 'dired-x)
 (setq dired-omit-files
