@@ -32,7 +32,7 @@
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.module\\'" . nxhtml-mumamo-mode))
 
-(add-to-list 'load-path "~/.emacs.d/tuareg-2.0.4")
+(add-to-list 'load-path "~/.emacs.d/tuareg")
 (add-to-list 'load-path "~/.emacs.d/ocaml")
 (require 'caml-types)
 (setq auto-mode-alist
