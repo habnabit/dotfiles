@@ -31,6 +31,7 @@ fi
 source $HOME/.dotfiles/compy-specific.sh
 export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 bindkey '\e.' insert-last-word
+setopt transientrprompt
 
 export OCAMLRUNPARAM=b
 [[ -z $LANG ]] && export LANG=en_US.UTF-8
