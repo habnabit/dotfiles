@@ -65,6 +65,11 @@ irc443 () {
     irc -p 443 -o "ServerAliveInterval 60" "$@"
 }
 
+irc-mosh () {
+     /usr/bin/perl =mosh "$@" carlotta -- \
+         /home/habnabit/.local/bin/tmux attach -tirc
+}
+
 unpack () {
     url=$1
     ext=${${${${url:t}/*./}/\?*/}:-$2}
@@ -106,4 +111,8 @@ reload_tmux_vars() {
 
 gffm () {
     git merge --ff-only ${1:-origin}/$(current_branch)
+}
+
+grbo () {
+    git rebase ${1:-origin}/$(current_branch)
 }
