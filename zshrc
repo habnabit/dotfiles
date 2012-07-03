@@ -31,7 +31,10 @@ fi
 source $HOME/.dotfiles/compy-specific.sh
 export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 bindkey '\e.' insert-last-word
-setopt transientrprompt
+setopt transientrprompt extendedhistory histignoredups histexpiredupsfirst \
+    histfindnodups histsavenodups histreduceblanks
+HISTSIZE=10000000
+SAVEHIST=10000000
 
 export OCAMLRUNPARAM=b
 [[ -z $LANG ]] && export LANG=en_US.UTF-8
