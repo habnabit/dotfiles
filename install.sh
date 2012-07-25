@@ -14,7 +14,6 @@ install() {
     $LN -s "$SRC/$1" "$dest"
 }
 
-(cd $SRC; git submodule update --init --recursive)
 (cd $SRC/oh-my-zsh; gcc parse-git-status.c -o parse-git-status)
 mkdir -p $SRC/emacs.d/compy-specific
 touch $SRC/emacs.d/compy-specific/init.el
