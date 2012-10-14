@@ -3,6 +3,8 @@
 (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
 (add-to-list 'load-path "~/.emacs.d/magit")
 (add-to-list 'load-path "~/.emacs.d/flymake")
+(add-to-list 'load-path "~/.emacs.d/circe/lisp/")
+(add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
 (load "~/.emacs.d/compy-specific/init.el")
 (load "~/.emacs.d/nxhtml/autostart.el")
 
@@ -13,12 +15,7 @@
 (require 'moccur-edit)
 (require 'javascript-mode)
 (require 'haml-mode)
-(eval-after-load 'color-theme
-  '(progn
-     (color-theme-initialize)
-     (require 'color-theme-twilight)
-     (color-theme-twilight)))
-(require 'color-theme)
+(load-theme 'solarized-dark t)
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
@@ -31,6 +28,7 @@
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.module\\'" . nxhtml-mumamo-mode))
+(autoload 'circe "circe" "Connect to an IRC server" t)
 
 (add-to-list 'load-path "~/.emacs.d/tuareg")
 (add-to-list 'load-path "~/.emacs.d/ocaml")
@@ -131,4 +129,3 @@ displayed in the minibuffer (rather than having to mouse over
 it)"
   (set (make-local-variable 'post-command-hook)
        (cons 'show-fly-err-at-point post-command-hook)))
-
