@@ -41,6 +41,12 @@ export OCAMLRUNPARAM=b
 
 alias HEAD="curl --head"
 
+mkproj () {
+    dir=Projects/$(date +"%Y%m%d-$1")
+    mkdir "$dir"
+    cd "$dir"
+}
+
 hutchup () {
     open -a Propane &
     open -a RescueTime &
