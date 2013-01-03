@@ -1,13 +1,3 @@
-(let ((mypaths
-       '("/usr/local/bin"
-         "/usr/local/sbin"
-         "/usr/bin"
-         "/bin"
-         "/usr/sbin"
-         "/sbin")))
-  (setenv "PATH" (mapconcat 'identity mypaths ":"))
-  (setq exec-path (append mypaths (list exec-directory))))
-
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
 (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
@@ -18,6 +8,10 @@
 (add-to-list 'load-path "~/.emacs.d/mmm-mode")
 (add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
 (load "~/.emacs.d/compy-specific/init.el")
+(defun fix-path ()
+  (interactive)
+  (setenv "PATH" (mapconcat 'identity exec-path ":")))
+(fix-path)
 
 (require 'flymake)
 (require 'magit)
@@ -41,6 +35,7 @@
 (add-to-list 'completion-ignored-extensions ".orig")
 (ido-mode 1)
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+(add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.mako\\'" . html-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 (mmm-add-mode-ext-class 'html-mode "\\.mako\\'" 'mako)
@@ -93,13 +88,13 @@
 (when (load "flymake" t)
   (defun flymake-pycheckers-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
-                       'flymake-create-temp-inplace))
+                       'flymake-create-temp-copy))
            (local-file (file-relative-name
                         temp-file
                         (file-name-directory buffer-file-name))))
       (list "~/.emacs.d/pycheckers.py" (list local-file))))
-  (add-to-list 'flymake-allowed-file-name-masks
-               '("\\.py\\'" flymake-pycheckers-init)))
+  (add-to-list 'flymake-allowed-file-name-masks '("\\.py\\'" flymake-pycheckers-init))
+  (add-to-list 'flymake-allowed-file-name-masks '("\\.tac\\'" flymake-pycheckers-init)))
 (add-hook 'python-mode-hook (lambda () (flymake-mode t)))
 
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
