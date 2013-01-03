@@ -117,7 +117,7 @@ class PyflakesRunner(LintRunner):
             ^
     """
 
-    command = '/Users/habnabit/.local/bin/pyflakes'
+    command = 'pyflakes'
 
     output_matcher = re.compile(
         r'(?P<filename>[^:]+):'
