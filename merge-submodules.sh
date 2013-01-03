@@ -6,3 +6,4 @@ git subtree pull --prefix emacs.d/twittering-mode --squash git://github.com/haya
 git subtree pull --prefix emacs.d/magit --squash git://github.com/magit/magit.git master
 git subtree pull --prefix emacs.d/flymake --squash git://github.com/illusori/emacs-flymake.git master
 git subtree pull --prefix emacs.d/circe --squash git://github.com/retroj/circe.git master
+git subtree pull --prefix emacs.d/notmuch --squash git://notmuchmail.org/git/notmuch master
