@@ -1,0 +1,57 @@
+mmm-mako for Emacs                                                        README
+--------------------------------------------------------------------------------
+INSTALLATION:
+
+Prerequisites:
+python-mode
+mmm-mode                http://mmm-mode.sourceforge.net/
+
+In your .emacs, load the .el:
+
+(load "~/mmm-mako.el")
+
+Then specify the extensions to use with mmm-mako mode:
+
+(add-to-list 'auto-mode-alist '("\\.mako\\'" . html-mode))
+(mmm-add-mode-ext-class 'html-mode "\\.mako\\'" 'mako)
+
+
+USAGE:
+
+Available MMM Mode Insertion Commands:
+Key             Inserts
+---             -------
+
+C-c % t         mako-<%text>
+C-c % o         mako-<%doc>
+C-c % #         mako-comment
+C-c % !         mako-<%!-%>
+C-c % %         mako-<%-%>
+C-c % $         mako-${-}
+C-c % <tab>     mako-%-line
+C-c % d         mako-<%def>
+C-c % c         mako-<%call>
+C-c % p         mako-<%page>
+C-c % u         mako-<%include>
+C-c % n         mako-<%namespace>
+C-c % i         mako-<%inherit>
+
+(Use C-c % h to show this help message when in mmm-mako mode)
+
+
+BUGS:
+
+mmm-mode can sometimes become confused about submode regions. This is
+especially noticable when mmm-mode syntax coloring
+(mmm-submode-decoration-level) is enabled. It's likely to happen when hitting
+<return> at the end of Mako ## or % one-liners, or if insertion commands aren't
+used when creating new Mako tags/constructs.
+
+Forcing mmm-mode to refresh the buffer (via the mmm-parse-buffer function) will
+fix this when it occurs. To bind that function to the M-p key sequence, add to
+your .emacs:
+
+(global-set-key "\M-p"  'mmm-parse-buffer)
+
+
+- pjenvey@underboss.org

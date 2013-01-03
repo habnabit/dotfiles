@@ -1,12 +1,23 @@
+(let ((mypaths
+       '("/usr/local/bin"
+         "/usr/local/sbin"
+         "/usr/bin"
+         "/bin"
+         "/usr/sbin"
+         "/sbin")))
+  (setenv "PATH" (mapconcat 'identity mypaths ":"))
+  (setq exec-path (append mypaths (list exec-directory))))
+
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
 (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
 (add-to-list 'load-path "~/.emacs.d/magit")
 (add-to-list 'load-path "~/.emacs.d/flymake")
-(add-to-list 'load-path "~/.emacs.d/circe/lisp/")
+(add-to-list 'load-path "~/.emacs.d/circe/lisp")
+(add-to-list 'load-path "~/.emacs.d/notmuch/emacs")
+(add-to-list 'load-path "~/.emacs.d/mmm-mode")
 (add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
 (load "~/.emacs.d/compy-specific/init.el")
-(load "~/.emacs.d/nxhtml/autostart.el")
 
 (require 'flymake)
 (require 'magit)
@@ -15,6 +26,10 @@
 (require 'moccur-edit)
 (require 'javascript-mode)
 (require 'haml-mode)
+(require 'gnus-art)
+(require 'notmuch)
+(require 'mmm-auto)
+(load "~/.emacs.d/mmm-mako/mmm-mako.el")
 (load-theme 'solarized-dark t)
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
@@ -26,8 +41,9 @@
 (add-to-list 'completion-ignored-extensions ".orig")
 (ido-mode 1)
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+(add-to-list 'auto-mode-alist '("\\.mako\\'" . html-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
-(add-to-list 'auto-mode-alist '("\\.module\\'" . nxhtml-mumamo-mode))
+(mmm-add-mode-ext-class 'html-mode "\\.mako\\'" 'mako)
 (autoload 'circe "circe" "Connect to an IRC server" t)
 
 (add-to-list 'load-path "~/.emacs.d/tuareg")
