@@ -8,6 +8,11 @@ else
   local prompt_char='$'
   local host_color='green'
 fi
+if [[ $YELP_IN_SANDBOX = 1 ]]; then
+  local sandbox_indicator='%{$fg[magenta]$YELP_DOMAIN_PREFIX%}yelp.com%{$reset_color%} '
+else
+  local sandbox_indicator=''
+fi
 local user_host='%{$fg[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
 local dircount='$(ls -1 | wc -l | sed "s: ::g")'
@@ -43,6 +48,6 @@ ZSH_THEME_GIT_PROMPT_PREFIX="  %{$fg[yellow]%}«"
 ZSH_THEME_GIT_PROMPT_SUFFIX="»%{$reset_color%}"
 
 PROMPT="
-╭── ${current_dir}: ${dircount}${git_branch}${return_code}
+╭── ${sandbox_indicator}${current_dir}: ${dircount}${git_branch}${return_code}
 ╰─ ${user_host} %{$fg[blue]%}${prompt_char}%{$reset_color%} "
 RPROMPT="\${job_counts}"
