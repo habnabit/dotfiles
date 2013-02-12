@@ -42,8 +42,8 @@ export OCAMLRUNPARAM=b
 alias HEAD="curl --head"
 
 mkproj () {
-    dir=Projects/$(date +"%Y%m%d-$1")
-    mkdir "$dir"
+    local dir=$HOME/Projects/$(date +"%Y%m%d-$1")
+    mkdir -p "$dir"
     cd "$dir"
 }
 
