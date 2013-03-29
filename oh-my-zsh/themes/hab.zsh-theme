@@ -3,7 +3,7 @@ autoload -U add-zsh-hook
 
 local prompt_char='$'
 local host_color='green'
-local sandbox_indicator=''
+local sandbox=''
 local user_host='%{$fg[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
 local dircount='$(ls -1 | wc -l | sed "s: ::g")'
@@ -16,8 +16,9 @@ if [[ $(id -u) = 0 ]]; then
 fi
 
 if [[ $YELP_IN_SANDBOX = 1 ]]; then
-  sandbox_indicator='%{$fg[magenta]$YELP_DOMAIN_PREFIX%}yelp.com%{$reset_color%} '
+  sandbox="${YELP_DOMAIN_PREFIX}yelp.com"
 fi
+local environment_indicator="$sandbox"
 
 function git_prompt_status () {
   git status --porcelain | $ZSH/parse-git-status
@@ -42,12 +43,12 @@ function prompt_hab_precmd () {
   done
   job_counts=${jobs:+" %{$fg[magenta]%}[$jobs]%{$reset_color%}"}
 
+  environment_indicator="$sandbox"
   if [[ -n $VIRTUAL_ENV ]]; then
     local venv_name=$(basename "$VIRTUAL_ENV")
-    sandbox_indicator="%{$fg[magenta]$venv_name%}%{$reset_color%} "
-  else
-    sandbox_indicator=''
+    environment_indicator="${environment_indicator:+$environment_indicator }${venv_name}"
   fi
+  environment_indicator=${environment_indicator:+"%{$fg[magenta]$environment_indicator%}%{$reset_color%} "}
 }
 add-zsh-hook precmd prompt_hab_precmd
 
@@ -56,6 +57,6 @@ ZSH_THEME_GIT_PROMPT_SUFFIX="»%{$reset_color%}"
 VIRTUAL_ENV_DISABLE_PROMPT=1
 
 PROMPT="
-╭── \${sandbox_indicator}${current_dir}: ${dircount}${git_branch}${return_code}
+╭── \${environment_indicator}${current_dir}: ${dircount}${git_branch}${return_code}
 ╰─ ${user_host} %{$fg[blue]%}${prompt_char}%{$reset_color%} "
 RPROMPT="\${job_counts}"
