@@ -38,6 +38,7 @@ SAVEHIST=10000000
 
 export OCAMLRUNPARAM=b
 [[ -z $LANG ]] && export LANG=en_US.UTF-8
+[[ -z $SSH_AUTH_SOCK || ! -e $SSH_AUTH_SOCK ]] && export SSH_AUTH_SOCK=$HOME/.ssh/auth-sock
 
 alias HEAD="curl --head"
 
