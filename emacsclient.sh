@@ -10,7 +10,8 @@ if [ "$#" -eq 0 ]; then
     exit 0
 fi
 
-if [ -z "$remote_emacs_auth" ] || [ ! -e "$remote_emacs_auth" ] || ! nc -z $(sed -n 1p "$remote_emacs_auth"); then
+[ -e "$remote_emacs_auth" ] && client_host=$(sed -n 1p "$remote_emacs_auth")
+if [ -z "$client_host" ] || ! nc -z $client_host; then
     echo "no emacs server"
     sleep 1
     exec emacs "$@"
@@ -29,9 +30,9 @@ unquote () {
 :g'
 }
 
-tramp_auth=$(sed -n 2p "${remote_emacs_auth}")
+client_auth=$(sed -n 2p "${remote_emacs_auth}")
 tramp_prefix=$(sed -n 3p "${remote_emacs_auth}")
-args=$(printf "%s\n%s\n" "${tramp_auth}" "-dir ${tramp_prefix}${quoted_pwd}")
+args=$(printf "%s\n%s\n" "${client_auth}" "-dir ${tramp_prefix}${quoted_pwd}")
 [ "${nowait}" != 0 ] && args="${args} -nowait"
 quoted_pwd=$(quoteline "$(pwd)")
 
@@ -45,4 +46,4 @@ for file; do
     args="${args} ${argument}"
 done
 
-printf "%s\n" "${args}" | nc $(sed -n 1p "${remote_emacs_auth}") | unquote
+printf "%s\n" "${args}" | nc $client_host | unquote

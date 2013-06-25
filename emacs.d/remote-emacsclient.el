@@ -16,17 +16,18 @@ return a new alist whose car is the new pair and cdr is ALIST."
       (cons (cons key value) alist))))
 
 (defun update-tramp-emacs-server-port-forward (method-name)
-  "Update the specified TRAMP's method to forward the Emacs server port to the local host.
-This lets emacsclient on the remote host open files in the local
-Emacs server."
+  "Update the specified TRAMP's method to forward the Emacs
+ server port to the local host. This lets emacsclient on the
+ remote host open files in the local Emacs server."
   (let* ((method (assoc method-name tramp-methods))
          (ssh-args (cadr (assoc 'tramp-login-args method))))
     (put-alist 'tramp-login-args
-      (list (put-alist "-R" (let ((port (process-contact server-process :service)))
+      (list (put-alist "-R" (let ((port
+                                   (process-contact server-process :service)))
         ;; put-alist makes a dotted pair for the key/value, but tramp-methods
         ;; needs a normal list, so put the value inside a list so that the
-        ;; second part of the dotted pair (ie the cdr) is a list, which converts
-        ;; it from a dotted pair into a normal list.
+        ;; second part of the dotted pair (ie the cdr) is a list, which
+        ;; converts it from a dotted pair into a normal list.
                               (list (format "%s:127.0.0.1:%s" port port)))
                        ssh-args))
       method)))
