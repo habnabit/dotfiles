@@ -17,17 +17,26 @@ if [ -z "$remote_emacs_auth" ] || [ ! -e "$remote_emacs_auth" ] || ! nc -z $(sed
 fi
 
 quote () {
-    echo "$1" | sed 's:&:\&\&:g;s:-:\&-:g;s: :\&_:g'
+    sed 's:&:\&\&:g;s:-:\&-:g;s: :\&_:g'
+}
+
+quoteline () {
+    printf "%s\n" "$1" | quote
+}
+
+unquote () {
+    sed 's:&&:\&:g;s:&-:-:g;s:&_: :g;s:&n:\
+:g'
 }
 
 tramp_auth=$(sed -n 2p "${remote_emacs_auth}")
 tramp_prefix=$(sed -n 3p "${remote_emacs_auth}")
 args=$(printf "%s\n%s\n" "${tramp_auth}" "-dir ${tramp_prefix}${quoted_pwd}")
 [ "${nowait}" != 0 ] && args="${args} -nowait"
-quoted_pwd=$(quote "$(pwd)")
+quoted_pwd=$(quoteline "$(pwd)")
 
 for file; do
-    quoted_file=$(quote "${file}")
+    quoted_file=$(quoteline "${file}")
     case "${file}" in
         +*) argument="-position ${quoted_file}";;
         /*) argument="-file ${tramp_prefix}${quoted_file}";;
@@ -36,4 +45,4 @@ for file; do
     args="${args} ${argument}"
 done
 
-printf "%s\n" "${args}" | nc $(sed -n 1p "${remote_emacs_auth}")
+printf "%s\n" "${args}" | nc $(sed -n 1p "${remote_emacs_auth}") | unquote
