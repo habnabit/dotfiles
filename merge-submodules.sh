@@ -10,3 +10,4 @@ git subtree pull --prefix emacs.d/notmuch --squash git://notmuchmail.org/git/not
 git subtree pull --prefix emacs.d/popwin-el --squash git://github.com/m2ym/popwin-el.git master
 git subtree pull --prefix emacs.d/git-gutter --squash git://github.com/syohex/emacs-git-gutter.git master
 git subtree pull --prefix emacs.d/rainbow-delimiters --squash git://github.com/jlr/rainbow-delimiters.git master
+git subtree pull --prefix emacs.d/markdown-mode --squash git://jblevins.org/git/markdown-mode.git master
