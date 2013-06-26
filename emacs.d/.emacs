@@ -9,7 +9,9 @@
 (add-to-list 'load-path "~/.emacs.d/popwin-el")
 (add-to-list 'load-path "~/.emacs.d/rainbow-delimiters")
 (add-to-list 'load-path "~/.emacs.d/markdown-mode")
+(add-to-list 'load-path "~/.emacs.d/web-mode")
 (add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
+(setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
@@ -37,6 +39,7 @@
 (require 'rainbow-delimiters)
 (require 'markdown-mode)
 (require 'jinja)
+(require 'web-mode)
 (load-theme 'solarized-dark t)
 
 (put 'narrow-to-region 'disabled nil)
@@ -58,6 +61,9 @@
 (add-to-list 'auto-mode-alist '("\\.html\\'" . html-mumamo))
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
+(add-to-list 'web-mode-engines-alist '(("velocity" . "\\.tmpl\\'")))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 
 (add-hook 'before-save-hook 'delete-trailing-whitespace)

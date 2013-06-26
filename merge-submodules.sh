@@ -12,3 +12,4 @@ git subtree pull --prefix emacs.d/git-gutter --squash git://github.com/syohex/em
 git subtree pull --prefix emacs.d/rainbow-delimiters --squash git://github.com/jlr/rainbow-delimiters.git master
 git subtree pull --prefix emacs.d/markdown-mode --squash git://jblevins.org/git/markdown-mode.git master
 git subtree pull --prefix emacs.d/color-theme-solarized --squash git://github.com/sellout/emacs-color-theme-solarized.git master
+git subtree pull --prefix emacs.d/web-mode --squash git://github.com/fxbois/web-mode.git master
