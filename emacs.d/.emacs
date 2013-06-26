@@ -5,7 +5,6 @@
 (add-to-list 'load-path "~/.emacs.d/flymake")
 (add-to-list 'load-path "~/.emacs.d/circe/lisp")
 (add-to-list 'load-path "~/.emacs.d/notmuch/emacs")
-(add-to-list 'load-path "~/.emacs.d/mmm-mode")
 (add-to-list 'load-path "~/.emacs.d/git-gutter")
 (add-to-list 'load-path "~/.emacs.d/popwin-el")
 (add-to-list 'load-path "~/.emacs.d/rainbow-delimiters")
@@ -33,13 +32,11 @@
 (require 'haml-mode)
 (require 'gnus-art)
 (require 'notmuch)
-(require 'mmm-auto)
 (require 'git-gutter)
 (require 'popwin)
 (require 'rainbow-delimiters)
 (require 'markdown-mode)
 (require 'jinja)
-(load "~/.emacs.d/mmm-mako/mmm-mako.el")
 (load-theme 'solarized-dark t)
 
 (put 'narrow-to-region 'disabled nil)
@@ -57,11 +54,11 @@
 
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
-(add-to-list 'auto-mode-alist '("\\.mako\\'" . html-mode))
+(add-to-list 'auto-mode-alist '("\\.mako\\'" . mako-html-mumamo))
+(add-to-list 'auto-mode-alist '("\\.html\\'" . html-mumamo))
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
-(mmm-add-mode-ext-class 'html-mode "\\.mako\\'" 'mako)
 
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 (add-hook 'php-mode-hook
@@ -104,7 +101,7 @@
       (list "~/.emacs.d/pycheckers.py" (list local-file))))
   (add-to-list 'flymake-allowed-file-name-masks '("\\.py\\'" flymake-pycheckers-init))
   (add-to-list 'flymake-allowed-file-name-masks '("\\.tac\\(\\.example\\)?\\'" flymake-pycheckers-init)))
-(add-hook 'python-mode-hook (lambda () (flymake-mode t)))
+(add-hook 'find-file-hook 'flymake-mode)
 
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
