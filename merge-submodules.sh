@@ -7,3 +7,6 @@ git subtree pull --prefix emacs.d/magit --squash git://github.com/magit/magit.gi
 git subtree pull --prefix emacs.d/flymake --squash git://github.com/illusori/emacs-flymake.git master
 git subtree pull --prefix emacs.d/circe --squash git://github.com/retroj/circe.git master
 git subtree pull --prefix emacs.d/notmuch --squash git://notmuchmail.org/git/notmuch master
+git subtree pull --prefix emacs.d/popwin-el --squash git://github.com/m2ym/popwin-el.git master
+git subtree pull --prefix emacs.d/git-gutter --squash git://github.com/syohex/emacs-git-gutter.git master
+git subtree pull --prefix emacs.d/rainbow-delimiters --squash git://github.com/jlr/rainbow-delimiters.git master

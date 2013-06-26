@@ -1,5 +1,7 @@
-games
-auto-save-list
-backups
+/games
+/auto-save-list
+/backups
 *.elc
-server
+/server
+/tramp
+/nxhtml/etc/schema/xhtml-loader.rnc
