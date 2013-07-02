@@ -1,6 +1,5 @@
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
-(add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
 (add-to-list 'load-path "~/.emacs.d/magit")
 (add-to-list 'load-path "~/.emacs.d/flymake")
 (add-to-list 'load-path "~/.emacs.d/circe/lisp")
@@ -10,7 +9,6 @@
 (add-to-list 'load-path "~/.emacs.d/rainbow-delimiters")
 (add-to-list 'load-path "~/.emacs.d/markdown-mode")
 (add-to-list 'load-path "~/.emacs.d/web-mode")
-(add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
 (setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
@@ -40,14 +38,12 @@
 (require 'markdown-mode)
 (require 'jinja)
 (require 'web-mode)
-(load-theme 'solarized-dark t)
 
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
 (show-paren-mode 1)
 (column-number-mode 1)
-(global-hl-line-mode 1)
 (add-to-list 'completion-ignored-extensions ".annot")
 (add-to-list 'completion-ignored-extensions ".orig")
 (ido-mode 1)
@@ -152,3 +148,9 @@ displayed in the minibuffer (rather than having to mouse over
 it)"
   (set (make-local-variable 'post-command-hook)
        (cons 'show-fly-err-at-point post-command-hook)))
+
+
+(when (boundp 'custom-theme-load-path)
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
+  (load-theme 'solarized-dark t)
+  (global-hl-line-mode 1))
