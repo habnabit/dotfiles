@@ -38,6 +38,7 @@
 (require 'markdown-mode)
 (require 'jinja)
 (require 'web-mode)
+(require 'cython-mode)
 
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
