@@ -1,0 +1,51 @@
+schemata:
+  - &8-alphanumeric
+    - [8, alphanumeric]
+  - &12-alphanumeric
+    - [12, alphanumeric]
+  - &32-alphanumeric
+    - [32, alphanumeric]
+  - &32-printable
+    - [32, printable]
+  - &pin
+    - [4, digit]
+
+sites:
+  default:
+    schema: *32-printable
+    iterations: 10000
+
+  becu.org:
+    schema: *32-alphanumeric
+
+  fhcrc.org:
+    increment: 2
+
+  schwab.com:
+    schema: *8-alphanumeric
+
+  fidelity.com:
+    schema:
+      - [16, [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']]
+
+  Kn9Jk8sjo4SEfxyxg1D9jgkcWtlt5CcDTMR8bbR4-FHQD_2J:
+    schema: *pin
+
+  pvPeY7RrBTdFsXGeoJVCjDe9xd70SF1sh1CComSXzZXkgHlz:
+    schema:
+      - [14, printable]
+
+  coQbccRqnAYfUY1ljla0VvIhvZHszvjzLjpydcBNvF68pVbB:
+    schema:
+      - [20, printable]
+
+  0db22qi_KxoGSlyh20dX6fpOVGTGDeGwDwWT2TcyVkZG-BYY:
+    schema:
+      - [15, printable]
+
+  KBWdEQuk5TJW2o5d-DP_5X6o9552nzmcUM_r_qf0nW_No5gw:
+    schema:
+      - [64, alphanumeric]
+
+site-hashing:
+  iterations: 10

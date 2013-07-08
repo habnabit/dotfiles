@@ -23,3 +23,4 @@ install emacs.d/.emacs
 install gitconfig
 install gitignore_global
 install zshrc
+install passacre.yaml

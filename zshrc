@@ -44,9 +44,11 @@ export OCAMLRUNPARAM=b
 
 alias HEAD="curl --head"
 alias cleanpip="rm -vrf ${TMPDIR:-/tmp}/pip-build-${USER}"
-alias pc="python -m passacre generate -cC"
+alias pc="python -m passacre generate -c"
+alias pcc="pc -C"
 alias pce="${EDITOR:-emacs} ~/.passacre.yaml"
-alias pcw="pc -w 10"
+alias pcs="python -m passacre sitehash -c"
+alias pcw="pc -Cw 10"
 
 mkproj () {
     local dir=$HOME/Projects/$(date +"%Y%m%d-$1")
