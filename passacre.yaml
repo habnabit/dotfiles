@@ -9,6 +9,8 @@ schemata:
     - [32, printable]
   - &pin
     - [4, digit]
+  - &words
+    - [6, word]
 
 sites:
   default:
@@ -47,5 +49,14 @@ sites:
     schema:
       - [64, alphanumeric]
 
+  sjs2eCXMYqMIgSVplS6tKFLr2giui7gdzCxUdWps_YybhSuN:
+    schema: *words
+
+  3j-iYsZwN2xXOovH_UtSw10ubdP1NSuRxaELK61NGwZppz-3:
+    schema: *words
+
+
 site-hashing:
   iterations: 10
+
+words-file: ~/.dotfiles/word-list
