@@ -33,6 +33,7 @@ export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 bindkey '\e.' insert-last-word
 setopt transientrprompt extendedhistory histignoredups histexpiredupsfirst \
     histfindnodups histsavenodups histreduceblanks
+unsetopt correct_all
 HISTSIZE=10000000
 SAVEHIST=10000000
 
@@ -42,6 +43,10 @@ export OCAMLRUNPARAM=b
 [[ -z $SSH_AUTH_SOCK || ! -e $SSH_AUTH_SOCK ]] && export SSH_AUTH_SOCK=$HOME/.ssh/auth-sock
 
 alias HEAD="curl --head"
+alias cleanpip="rm -vrf ${TMPDIR:-/tmp}/pip-build-${USER}"
+alias pc="python -m passacre generate -cC"
+alias pce="${EDITOR:-emacs} ~/.passacre.yaml"
+alias pcw="pc -w 10"
 
 mkproj () {
     local dir=$HOME/Projects/$(date +"%Y%m%d-$1")

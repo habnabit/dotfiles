@@ -15,7 +15,10 @@
         up = pull --ff-only
         mc = merge --no-ff --no-commit
         uncommit = reset --mixed HEAD^
+        squash = rebase -i --autosquash
 [push]
 	default = current
 [core]
 	excludesfile = ~/.gitignore_global
+[credential]
+	helper = osxkeychain
