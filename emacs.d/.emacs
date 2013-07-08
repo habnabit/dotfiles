@@ -39,6 +39,7 @@
 (require 'jinja)
 (require 'web-mode)
 (require 'cython-mode)
+(require 'yaml-mode)
 
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
@@ -60,6 +61,7 @@
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-mode))
 (add-to-list 'web-mode-engines-alist '(("velocity" . "\\.tmpl\\'")))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 
