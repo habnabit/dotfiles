@@ -110,6 +110,9 @@
 
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
+(global-set-key (kbd "M-N") 'git-gutter:next-hunk)
+(global-set-key (kbd "M-P") 'git-gutter:previous-hunk)
+(global-set-key (kbd "C-c k") 'git-gutter:revert-hunk)
 (global-set-key (kbd "C-x C-b") 'buffer-menu)
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
 (global-set-key (kbd "RET") 'newline-and-indent)
