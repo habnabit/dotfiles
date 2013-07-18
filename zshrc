@@ -85,7 +85,7 @@ irc443 () {
 
 irc-mosh () {
      /usr/bin/perl =mosh "$@" carlotta -- \
-         /home/habnabit/.local/bin/tmux attach -tirc
+         /home/habnabit/.local/bin/tmux -2u attach -tirc
 }
 
 unpack () {

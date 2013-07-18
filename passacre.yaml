@@ -49,11 +49,18 @@ sites:
     schema:
       - [64, alphanumeric]
 
+  29ujvLim1xnhP0wit2haP7PGftLSsg1M-ZTAMNkJnbG8BKeT:
+    schema:
+      - [64, alphanumeric]
+
   sjs2eCXMYqMIgSVplS6tKFLr2giui7gdzCxUdWps_YybhSuN:
     schema: *words
 
   3j-iYsZwN2xXOovH_UtSw10ubdP1NSuRxaELK61NGwZppz-3:
     schema: *words
+
+  CdHx5NGdoGHvy0sZgshchRPNXWHkdKpxtcHJfpPzEFyLMnKV:
+    schema: *pin
 
 
 site-hashing:
