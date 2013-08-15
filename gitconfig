@@ -16,6 +16,7 @@
         mc = merge --no-ff --no-commit
         uncommit = reset --mixed HEAD^
         squash = rebase -i --autosquash
+        backupref = reset --hard HEAD@{1}
 [push]
 	default = current
 [core]
