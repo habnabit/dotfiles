@@ -11,6 +11,7 @@ schemata:
     - [4, digit]
   - &words
     - [6, word]
+  - &not-too-special: [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']
 
 sites:
   default:
@@ -28,7 +29,7 @@ sites:
 
   fidelity.com:
     schema:
-      - [16, [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']]
+      - [16, *not-too-special]
 
   Kn9Jk8sjo4SEfxyxg1D9jgkcWtlt5CcDTMR8bbR4-FHQD_2J:
     schema: *pin
@@ -62,6 +63,19 @@ sites:
   CdHx5NGdoGHvy0sZgshchRPNXWHkdKpxtcHJfpPzEFyLMnKV:
     schema: *pin
 
+  3lMt8hXhy51HG956LYl7qbFwtW0ETNX4_l-YjjA_eImV-J7T:
+    username: aarg
+    schema:
+      - [13, *not-too-special]
+
+  5gnAu9PW-8QoDbh1maHXXV7-QYaDMiU0cxGUslbKhqq7fSfT:
+    username: yelpaarg
+    schema:
+      - [20, printable]
+
+  vMfNRIfImrdDZCwu1lKCGum_temx01EqkLHyCyhOjQzGcqua:
+    schema:
+      - [16, alphanumeric]
 
 site-hashing:
   iterations: 10
