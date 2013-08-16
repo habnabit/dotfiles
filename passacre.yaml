@@ -10,7 +10,7 @@ schemata:
   - &pin
     - [4, digit]
   - &words
-    - [6, word]
+    - [' ', 6, word]
   - &not-too-special: [alphanumeric, '"%''()+,-/:;<=>?\ ^_|']
 
 sites:
