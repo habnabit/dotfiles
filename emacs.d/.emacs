@@ -40,6 +40,7 @@
 (require 'web-mode)
 (require 'cython-mode)
 (require 'yaml-mode)
+(require 'parsley-mode)
 
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
@@ -53,6 +54,7 @@
 (global-rainbow-delimiters-mode t)
 (popwin-mode 1)
 
+(add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.mako\\'" . mako-html-mumamo))
