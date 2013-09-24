@@ -157,6 +157,14 @@ it)"
   (set (make-local-variable 'post-command-hook)
        (cons 'show-fly-err-at-point post-command-hook)))
 
+(defun isort nil
+  "Sort python imports"
+  (interactive)
+  (shell-command-on-region
+   (point-min) (point-max)
+   "isort -"
+   nil t nil t))
+
 
 (when (boundp 'custom-theme-load-path)
   (add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
