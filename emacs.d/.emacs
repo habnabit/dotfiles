@@ -110,6 +110,9 @@
                 ".elc")))
 (add-hook 'dired-mode-hook (lambda () (dired-omit-mode 1)))
 
+(defcustom pycheckers-flags nil nil
+  :type '(repeat (string)))
+
 (when (load "flymake" t)
   (defun flymake-pycheckers-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
@@ -117,7 +120,7 @@
            (local-file (file-relative-name
                         temp-file
                         (file-name-directory buffer-file-name))))
-      (list "~/.emacs.d/pycheckers.py" (list local-file))))
+      (list "~/.emacs.d/pycheckers.py" (append pycheckers-flags (list local-file)))))
   (add-to-list 'flymake-allowed-file-name-masks '("\\.py\\'" flymake-pycheckers-init))
   (add-to-list 'flymake-allowed-file-name-masks '("\\.tac\\(\\.example\\)?\\'" flymake-pycheckers-init)))
 (add-hook 'find-file-hook 'flymake-mode)

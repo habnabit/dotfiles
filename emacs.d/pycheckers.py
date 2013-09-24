@@ -149,7 +149,7 @@ class Pep8Runner(LintRunner):
 
     """
 
-    command = 'pep8.py'
+    command = 'flake8'
 
     output_matcher = re.compile(
         r'(?P<filename>[^:]+):'
@@ -165,7 +165,7 @@ class Pep8Runner(LintRunner):
 
     @property
     def run_flags(self):
-        return '--repeat', '--ignore=' + ','.join(self.ignore_codes)
+        return ['--ignore=' + ','.join(self.ignore_codes)]
 
 
 class PydoRunner(LintRunner):
