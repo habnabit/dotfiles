@@ -2,9 +2,10 @@
 autoload -U add-zsh-hook
 
 local prompt_char='$'
-local host_color='green'
 local sandbox=''
-local user_host='%{$fg[${host_color}]%}%n@%m%{$reset_color%}'
+local to_hash="$(whoami)@$(hostname)"
+local host_color=$(printf "%03d" "$(echo ${to_hash} | openssl sha1 -binary | od -N1 -tu2 -An)")
+local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
 local dircount='$(ls -1 | wc -l | sed "s: ::g")'
 local git_branch='$(git_prompt_info)%{$reset_color%}'
@@ -12,7 +13,6 @@ local return_code="%(?..%{$fg[red]%}  %? ↵%{$reset_color%})"
 
 if [[ $(id -u) = 0 ]]; then
   prompt_char='#'
-  host_color='red'
 fi
 
 if [[ $YELP_IN_SANDBOX = 1 ]]; then
