@@ -2,7 +2,6 @@
 autoload -U add-zsh-hook
 
 local prompt_char='$'
-local sandbox=''
 local to_hash="$(whoami)@$(hostname)"
 local host_color=$(printf "%03d" "$(echo ${to_hash} | openssl sha1 -binary | od -N1 -tu2 -An)")
 local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
@@ -14,11 +13,6 @@ local return_code="%(?..%{$fg[red]%}  %? ↵%{$reset_color%})"
 if [[ $(id -u) = 0 ]]; then
   prompt_char='#'
 fi
-
-if [[ $YELP_IN_SANDBOX = 1 ]]; then
-  sandbox="${YELP_DOMAIN_PREFIX}yelp.com"
-fi
-local environment_indicator="$sandbox"
 
 function git_prompt_status () {
   git status --porcelain | $ZSH/parse-git-status
