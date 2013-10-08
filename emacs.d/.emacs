@@ -10,6 +10,7 @@
 (add-to-list 'load-path "~/.emacs.d/markdown-mode")
 (add-to-list 'load-path "~/.emacs.d/web-mode")
 (add-to-list 'load-path "~/.emacs.d/pymacs")
+(add-to-list 'load-path "~/.emacs.d/autocomplete")
 (setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
@@ -42,6 +43,7 @@
 (require 'cython-mode)
 (require 'yaml-mode)
 (require 'parsley-mode)
+(require 'auto-complete)
 (autoload 'pymacs-apply "pymacs")
 (autoload 'pymacs-call "pymacs")
 (autoload 'pymacs-eval "pymacs" nil t)
@@ -62,6 +64,7 @@
 (global-git-gutter-mode t)
 (global-rainbow-delimiters-mode t)
 (popwin-mode 1)
+(global-auto-complete-mode t)
 
 (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
