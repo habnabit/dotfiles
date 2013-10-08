@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-
 import re
 import os
 import socket
 import sys
-
 
 quote_map = {'&': '&&', '-': '&-', '\n': '&n', ' ': '&_'}
 reverse_quote_map = {v: k for v, k in quote_map.iteritems()}
@@ -12,7 +10,6 @@ def quote(s):
     return re.sub(r'[-&\n ]', lambda m: quote_map[m.group()], s)
 def unquote(s):
     return re.sub(r'&[-&n_]', lambda m: quote_map[m.group()], s)
-
 
 nowait = False
 if sys.argv[1:2] == ['-n']:
@@ -29,10 +26,7 @@ sock = socket.socket()
 sock.connect((host, int(port)))
 
 pwd = os.getcwd()
-tramp_args = [
-    client_auth,
-    '-dir', quote(tramp_prefix + pwd),
-]
+tramp_args = [client_auth, '-dir', quote(tramp_prefix + pwd)]
 if nowait:
     tramp_args.append('-nowait')
 
