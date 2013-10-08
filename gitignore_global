@@ -8,3 +8,4 @@
 _aptx_configuration_file
 [xyz].ml
 *.py[co]
+.ropeproject
