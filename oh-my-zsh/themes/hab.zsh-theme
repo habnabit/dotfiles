@@ -30,7 +30,7 @@ jobtypes=(running r suspended s done d)
 function prompt_hab_precmd () {
   local jobs=''
   for type in ${(k)jobtypes}; do
-    count=${(Mw)#jobstates#${type}#}
+    count=${(Mw)#jobstates#${type}}
     if [[ $count > 0 ]]; then
       jobs="${count}${jobtypes[$type]}${jobs}"
     fi
