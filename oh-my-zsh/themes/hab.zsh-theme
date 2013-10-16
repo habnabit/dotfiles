@@ -35,7 +35,7 @@ function prompt_hab_precmd () {
       jobs="${count}${jobtypes[$type]}${jobs}"
     fi
   done
-  job_counts=${jobs:+" %{$fg[magenta]%}[$jobs]%{$reset_color%}"}
+  job_counts=${jobs:+" %{$fg[magenta]%}‹$jobs›%{$reset_color%}"}
 
   environment_indicator="$sandbox"
   if [[ -n $VIRTUAL_ENV ]]; then
