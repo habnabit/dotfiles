@@ -24,7 +24,7 @@ static char *order = STATUS_ORDER;
 ssize_t chrkey (const char *c)
 {
     char *pos = strchr(order, *c);
-    pos? order - pos : -1;
+    return pos? pos - order : 1;
 }
 
 int chrcmp (const void *a, const void *b)
