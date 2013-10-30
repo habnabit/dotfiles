@@ -8,9 +8,10 @@
 #define WORKING_STATII "MD"
 #define STATUS_ORDER "UMADRCmd?"
 
-void add (char *s, char c)
+void add (char *s, unsigned int *counts, char c)
 {
     char *p;
+    ++counts[c];
     for (p = s; *p != '\0' && *p != c; ++p);
     if (*p == '\0') { *p++ = c; *p = '\0'; }
 }
@@ -36,9 +37,12 @@ int main (void)
 {
     char inbuf[8192];
     char outbuf[12];
+    unsigned int counts[256];
     char *loc;
     int skipping = 0;
     size_t span;
+    char *space;
+    memset(counts, 0, sizeof counts);
     outbuf[0] = '\0';
     signal(SIGPIPE, SIG_IGN);
     while (fgets(inbuf, sizeof inbuf, stdin)) {
@@ -50,23 +54,27 @@ int main (void)
         if (strlen(inbuf) < 4 || inbuf[2] != ' ') {
             continue;
         }
-        if (str2eq(inbuf, "??")) { add(outbuf, '?'); }
+        if (str2eq(inbuf, "??")) { add(outbuf, counts, '?'); }
         else if (inbuf[0] == 'U'
                  || inbuf[1] == 'U'
                  || str2eq(inbuf, "DD")
                  || str2eq(inbuf, "AA"))
-            { add(outbuf, 'U'); }
+            { add(outbuf, counts, 'U'); }
         else {
             if ((loc = strchr(INDEX_STATII, inbuf[0])))
-                { add(outbuf, *loc); }
+                { add(outbuf, counts, *loc); }
             if ((loc = strchr(WORKING_STATII, inbuf[1])))
-                { add(outbuf, tolower(*loc)); }
+                { add(outbuf, counts, tolower(*loc)); }
         }
 
     }
     if (ferror(stdin)) { perror("fgets"); return 1; }
     { char *tmp = getenv("PARSE_GIT_STATUS_ORDER"); if (tmp) { order = tmp; } }
     qsort(outbuf, strlen(outbuf), sizeof *outbuf, chrcmp);
-    if (printf("%s\n", outbuf) < 0) { perror("printf"); return 1; }
+    for (loc = outbuf; *loc; ++loc) {
+        space = loc[1]? " " : "\n";
+        if (printf("%u%c%s", counts[*loc], *loc, space) < 0)
+            { perror("printf"); return 1; }
+    }
     return 0;
 }
