@@ -49,6 +49,7 @@ alias pcc="pc -C"
 alias pce="${EDITOR:-emacs} ~/.passacre.yaml"
 alias pcs="python -m passacre sitehash -c"
 alias pcw="pc -Cw 10"
+alias tpng="pngpaste - | tshort -e .png"
 
 mkproj () {
     local dir=$HOME/Projects/$(date +"%Y%m%d-$1")
