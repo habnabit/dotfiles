@@ -8,4 +8,7 @@
 _aptx_configuration_file
 [xyz].ml
 *.py[co]
+__pycache__
+dropin.cache
 .ropeproject
+*.egg-info
