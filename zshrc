@@ -57,15 +57,6 @@ mkproj () {
     cd "$dir"
 }
 
-hutchup () {
-    open -a Propane &
-    open -a RescueTime &
-}
-
-hutchdown () {
-    killall Propane RescueTime
-}
-
 t () {
     host=$1
     shift
