@@ -44,11 +44,11 @@ export OCAMLRUNPARAM=b
 
 alias HEAD="curl --head"
 alias cleanpip="rm -vrf ${TMPDIR:-/tmp}/pip-build-${USER}"
-alias pc="python -m passacre generate -c"
+alias pc="passacre generate -c"
 alias pcc="pc -C"
 alias pce="${EDITOR:-emacs} ~/.passacre.yaml"
-alias pcs="python -m passacre sitehash -c"
-alias pcw="pc -Cw 10"
+alias pcs="passacre sitehash -c"
+alias pcw="pc -C -w 10"
 alias tpng="pngpaste - | tshort -e .png"
 
 mkproj () {
