@@ -19,7 +19,10 @@ function git_prompt_status () {
 }
 
 function git_prompt_info () {
-  ref=$(git symbolic-ref HEAD 2> /dev/null) || return
+  ref=$(git symbolic-ref HEAD 2>/dev/null) || {
+      ref="$(git log -n1 --pretty=%h 2>/dev/null)" || return
+      ref="detached $ref"
+  }
   gst=$(git_prompt_status)
   if [ $gst ]; then gst=": ${gst}"; fi
   echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${gst}$ZSH_THEME_GIT_PROMPT_SUFFIX"

@@ -50,6 +50,7 @@ alias pce="${EDITOR:-emacs} ~/.passacre.yaml"
 alias pcs="passacre sitehash -c"
 alias pcw="pc -C -w 10"
 alias tpng="pngpaste - | tshort -e .png"
+alias tpaste="pbpaste - | tshort -e .txt"
 
 mkproj () {
     local dir=$HOME/Projects/$(date +"%Y%m%d-$1")
