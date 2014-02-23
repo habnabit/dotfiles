@@ -11,6 +11,8 @@
 (add-to-list 'load-path "~/.emacs.d/web-mode")
 (add-to-list 'load-path "~/.emacs.d/pymacs")
 (add-to-list 'load-path "~/.emacs.d/autocomplete")
+(add-to-list 'load-path "~/.emacs.d/dash")
+(add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
 (setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
