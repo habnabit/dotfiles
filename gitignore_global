@@ -12,3 +12,5 @@ __pycache__
 dropin.cache
 .ropeproject
 *.egg-info
+.coverage
+htmlcov
