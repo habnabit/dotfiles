@@ -10,6 +10,8 @@
 (add-to-list 'load-path "~/.emacs.d/markdown-mode")
 (add-to-list 'load-path "~/.emacs.d/web-mode")
 (add-to-list 'load-path "~/.emacs.d/pymacs")
+(add-to-list 'load-path "~/.emacs.d/tuareg")
+(add-to-list 'load-path "~/.emacs.d/ocaml")
 (add-to-list 'load-path "~/.emacs.d/autocomplete")
 (add-to-list 'load-path "~/.emacs.d/dash")
 (add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
@@ -45,6 +47,8 @@
 (require 'cython-mode)
 (require 'yaml-mode)
 (require 'parsley-mode)
+(require 'caml-types)
+(require 'tuareg)
 (require 'auto-complete)
 (autoload 'pymacs-apply "pymacs")
 (autoload 'pymacs-call "pymacs")
@@ -78,8 +82,12 @@
 (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-mode))
+(add-to-list 'auto-mode-alist '("\\.ml[iyl]?$" . tuareg-mode))
 (add-to-list 'web-mode-engines-alist '(("velocity" . "\\.tmpl\\'")))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
+
+(autoload 'tuareg-mode "tuareg" (interactive) "Major mode for editing Caml code." t)
+(autoload 'camldebug "camldebug" (interactive) "Debug caml mode")
 
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 (add-hook 'php-mode-hook
@@ -137,6 +145,7 @@
 (global-set-key (kbd "RET") 'newline-and-indent)
 (global-set-key (kbd "C-c C-3") 'server-edit)
 (global-set-key (kbd "C-c g") 'magit-status)
+(define-key tuareg-mode-map (kbd "C-c C-t") 'caml-types-show-type)
 
 (defun show-fly-err-at-point ()
   "If the cursor is sitting on a flymake error, display the
