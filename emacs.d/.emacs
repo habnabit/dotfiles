@@ -145,6 +145,6 @@
 
 
 (when (boundp 'custom-theme-load-path)
-  (add-to-list 'custom-theme-load-path "~/.emacs.d/color-theme-solarized")
-  (load-theme 'solarized-dark t)
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/solarized-emacs")
+  (load-theme 'solarized-dark-theme t)
   (global-hl-line-mode 1))
