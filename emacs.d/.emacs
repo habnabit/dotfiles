@@ -1,7 +1,6 @@
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/.emacs.d/twittering-mode")
 (add-to-list 'load-path "~/.emacs.d/magit")
-(add-to-list 'load-path "~/.emacs.d/flymake")
 (add-to-list 'load-path "~/.emacs.d/circe/lisp")
 (add-to-list 'load-path "~/.emacs.d/notmuch/emacs")
 (add-to-list 'load-path "~/.emacs.d/git-gutter")
@@ -15,6 +14,7 @@
 (add-to-list 'load-path "~/.emacs.d/autocomplete")
 (add-to-list 'load-path "~/.emacs.d/dash")
 (add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
+(add-to-list 'load-path "~/.emacs.d/flycheck")
 (setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
@@ -29,7 +29,6 @@
            (delq 'buffer-file-name mumamo-per-buffer-local-vars))))
 
 (load "~/.emacs.d/nxhtml/autostart.el")
-(require 'flymake)
 (require 'magit)
 (require 'twittering-mode)
 (require 'css-mode)
@@ -50,6 +49,7 @@
 (require 'caml-types)
 (require 'tuareg)
 (require 'auto-complete)
+(require 'flycheck)
 (autoload 'pymacs-apply "pymacs")
 (autoload 'pymacs-call "pymacs")
 (autoload 'pymacs-eval "pymacs" nil t)
@@ -71,6 +71,7 @@
 (global-rainbow-delimiters-mode t)
 (popwin-mode 1)
 (global-auto-complete-mode t)
+(add-hook 'after-init-hook #'global-flycheck-mode)
 
 (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
@@ -103,7 +104,6 @@
       (concat user-temporary-file-directory ".auto-saves-"))
 (setq auto-save-file-name-transforms
       `((".*" ,user-temporary-file-directory t)))
-(setq flymake-run-in-place nil)
 (setq twittering-reverse-mode t)
 
 (require 'dired-x)
@@ -123,20 +123,8 @@
 (defcustom pycheckers-flags nil nil
   :type '(repeat (string)))
 
-(when (load "flymake" t)
-  (defun flymake-pycheckers-init ()
-    (let* ((temp-file (flymake-init-create-temp-buffer-copy
-                       'flymake-create-temp-copy))
-           (local-file (file-relative-name
-                        temp-file
-                        (file-name-directory buffer-file-name))))
-      (list "~/.emacs.d/pycheckers.py" (append pycheckers-flags (list local-file)))))
-  (add-to-list 'flymake-allowed-file-name-masks '("\\.py\\'" flymake-pycheckers-init))
-  (add-to-list 'flymake-allowed-file-name-masks '("\\.tac\\(\\.example\\)?\\'" flymake-pycheckers-init)))
-(add-hook 'find-file-hook 'flymake-mode)
-
-(global-set-key (kbd "M-n") 'flymake-goto-next-error)
-(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
+(global-set-key (kbd "M-n") 'flycheck-next-error)
+(global-set-key (kbd "M-p") 'flycheck-previous-error)
 (global-set-key (kbd "M-N") 'git-gutter:next-hunk)
 (global-set-key (kbd "M-P") 'git-gutter:previous-hunk)
 (global-set-key (kbd "C-c k") 'git-gutter:revert-hunk)
@@ -146,42 +134,6 @@
 (global-set-key (kbd "C-c C-3") 'server-edit)
 (global-set-key (kbd "C-c g") 'magit-status)
 (define-key tuareg-mode-map (kbd "C-c C-t") 'caml-types-show-type)
-
-(defun show-fly-err-at-point ()
-  "If the cursor is sitting on a flymake error, display the
-message in the minibuffer"
-  (interactive)
-  (let ((line-no (line-number-at-pos)))
-    (dolist (elem flymake-err-info)
-      (if (eq (car elem) line-no)
-          (let ((err (car (second elem))))
-            (message "%s" (fly-pyflake-determine-message err)))))))
-
-(defun fly-pyflake-determine-message (err)
-  "pyflake is flakey if it has compile problems, this adjusts the
-message to display, so there is one ;)"
-  (cond ((not (or (eq major-mode 'Python) (eq major-mode 'python-mode) t)))
-        ((null (flymake-ler-file err))
-         ;; normal message do your thing
-         (flymake-ler-text err))
-        (t ;; could not compile err
-         (format "compile error, problem on line %s" (flymake-ler-line err)))))
-
-(defadvice flymake-goto-next-error (after display-message activate compile)
-  "Display the error in the mini-buffer rather than having to mouse over it"
-  (show-fly-err-at-point))
-
-(defadvice flymake-goto-prev-error (after display-message activate compile)
-  "Display the error in the mini-buffer rather than having to mouse over it"
-  (show-fly-err-at-point))
-
-(defadvice flymake-mode (before post-command-stuff activate compile)
-  "Add functionality to the post command hook so that if the
-cursor is sitting on a flymake error the error information is
-displayed in the minibuffer (rather than having to mouse over
-it)"
-  (set (make-local-variable 'post-command-hook)
-       (cons 'show-fly-err-at-point post-command-hook)))
 
 (defun isort nil
   "Sort python imports"
