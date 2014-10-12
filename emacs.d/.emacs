@@ -15,6 +15,7 @@
 (add-to-list 'load-path "~/.emacs.d/dash")
 (add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
 (add-to-list 'load-path "~/.emacs.d/flycheck")
+(add-to-list 'load-path "~/.emacs.d/solarized-emacs")
 (setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
@@ -68,10 +69,10 @@
 (add-to-list 'completion-ignored-extensions ".orig")
 (ido-mode 1)
 (global-git-gutter-mode t)
-(global-rainbow-delimiters-mode t)
 (popwin-mode 1)
 (global-auto-complete-mode t)
 (add-hook 'after-init-hook #'global-flycheck-mode)
+(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
 (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
@@ -122,9 +123,6 @@
                 ".elc")))
 (add-hook 'dired-mode-hook (lambda () (dired-omit-mode 1)))
 
-(defcustom pycheckers-flags nil nil
-  :type '(repeat (string)))
-
 (global-set-key (kbd "M-n") 'flycheck-next-error)
 (global-set-key (kbd "M-p") 'flycheck-previous-error)
 (global-set-key (kbd "M-N") 'git-gutter:next-hunk)
@@ -148,5 +146,6 @@
 
 (when (boundp 'custom-theme-load-path)
   (add-to-list 'custom-theme-load-path "~/.emacs.d/solarized-emacs")
-  (load-theme 'solarized-dark-theme t)
+  (setq solarized-high-contrast-mode-line t)
+  (load-theme 'solarized-dark t)
   (global-hl-line-mode 1))
