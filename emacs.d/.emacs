@@ -16,7 +16,6 @@
 (add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
 (add-to-list 'load-path "~/.emacs.d/flycheck")
 (add-to-list 'load-path "~/.emacs.d/solarized-emacs")
-(setq web-mode-engines-alist ())
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
@@ -77,6 +76,7 @@
 (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js-mode))
 (add-to-list 'auto-mode-alist '("\\.mako\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
@@ -86,9 +86,9 @@
 (add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-mode))
 (add-to-list 'auto-mode-alist '("\\.ml[iyl]?$" . tuareg-mode))
-(add-to-list 'web-mode-engines-alist '(("django" . "\\.jinja2\\'")))
-(add-to-list 'web-mode-engines-alist '(("velocity" . "\\.tmpl\\'")))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
+(setq web-mode-engines-alist '(("django" . "\\.jinja2\\'")
+                               ("velocity" . "\\.tmpl\\'")))
 
 (autoload 'tuareg-mode "tuareg" (interactive) "Major mode for editing Caml code." t)
 (autoload 'camldebug "camldebug" (interactive) "Debug caml mode")
@@ -142,6 +142,23 @@
    (point-min) (point-max)
    "isort -"
    nil t nil t))
+
+
+(flycheck-define-checker web-html-tidy
+  "A HTML syntax and style checker using Tidy.
+
+See URL `https://github.com/w3c/tidy-html5'."
+  :command ("tidy" (config-file "-config" flycheck-tidyrc) "-e" "-q" source)
+  :error-patterns
+  ((error line-start
+          "line " line
+          " column " column
+          " - Error: " (message) line-end)
+   (warning line-start
+            "line " line
+            " column " column
+            " - Warning: " (message) line-end))
+  :modes web-mode)
 
 
 (when (boundp 'custom-theme-load-path)
