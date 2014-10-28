@@ -16,6 +16,7 @@
 (add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
 (add-to-list 'load-path "~/.emacs.d/flycheck")
 (add-to-list 'load-path "~/.emacs.d/solarized-emacs")
+(add-to-list 'load-path "~/.emacs.d/git-modes")
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
