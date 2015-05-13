@@ -17,6 +17,7 @@
 (add-to-list 'load-path "~/.emacs.d/flycheck")
 (add-to-list 'load-path "~/.emacs.d/solarized-emacs")
 (add-to-list 'load-path "~/.emacs.d/git-modes")
+(add-to-list 'load-path "~/.emacs.d/rust-mode")
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
@@ -57,6 +58,7 @@
 (autoload 'pymacs-exec "pymacs" nil t)
 (autoload 'pymacs-load "pymacs" nil t)
 (autoload 'pymacs-autoload "pymacs")
+(autoload 'rust-mode "rust-mode" nil t)
 (pymacs-load "ropemacs" "rope-")
 (setq ropemacs-enable-autoimport t)
 
@@ -87,6 +89,7 @@
 (add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-mode))
 (add-to-list 'auto-mode-alist '("\\.ml[iyl]?$" . tuareg-mode))
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 (setq web-mode-engines-alist '(("django" . "\\.jinja2\\'")
                                ("velocity" . "\\.tmpl\\'")))
