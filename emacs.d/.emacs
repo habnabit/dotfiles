@@ -18,6 +18,7 @@
 (add-to-list 'load-path "~/.emacs.d/solarized-emacs")
 (add-to-list 'load-path "~/.emacs.d/git-modes")
 (add-to-list 'load-path "~/.emacs.d/rust-mode")
+(add-to-list 'load-path "~/.emacs.d/flycheck-rust")
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
@@ -52,6 +53,8 @@
 (require 'tuareg)
 (require 'auto-complete)
 (require 'flycheck)
+(require 'flycheck-rust)
+
 (autoload 'pymacs-apply "pymacs")
 (autoload 'pymacs-call "pymacs")
 (autoload 'pymacs-eval "pymacs" nil t)
@@ -73,6 +76,7 @@
 (global-git-gutter-mode t)
 (popwin-mode 1)
 (global-auto-complete-mode t)
+(add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
 (add-hook 'after-init-hook #'global-flycheck-mode)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
