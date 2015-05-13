@@ -1,7 +1,5 @@
 (add-to-list 'load-path "~/.emacs.d")
-(add-to-list 'load-path "~/.emacs.d/twittering-mode")
 (add-to-list 'load-path "~/.emacs.d/magit")
-(add-to-list 'load-path "~/.emacs.d/circe/lisp")
 (add-to-list 'load-path "~/.emacs.d/notmuch/emacs")
 (add-to-list 'load-path "~/.emacs.d/git-gutter")
 (add-to-list 'load-path "~/.emacs.d/popwin-el")
@@ -33,7 +31,6 @@
 
 (load "~/.emacs.d/nxhtml/autostart.el")
 (require 'magit)
-(require 'twittering-mode)
 (require 'css-mode)
 (require 'moccur-edit)
 (require 'javascript-mode)
