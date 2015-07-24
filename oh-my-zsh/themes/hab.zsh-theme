@@ -8,7 +8,9 @@ local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
 local dircount='$(ls -1 | wc -l | sed "s: ::g")'
 local git_branch='$(git_prompt_info)%{$reset_color%}'
-local return_code="%(?..%{$fg[red]%}  %? ↵%{$reset_color%})"
+local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%?) \${timer_show}s ↵%{$reset_color%}"
+local timer
+local timer_show="0"
 
 if [[ $(id -u) = 0 ]]; then
   prompt_char='#'
@@ -46,8 +48,17 @@ function prompt_hab_precmd () {
     environment_indicator="${environment_indicator:+$environment_indicator }${venv_name}"
   fi
   environment_indicator=${environment_indicator:+"%{$fg[magenta]$environment_indicator%}%{$reset_color%} "}
+  if [ $timer ]; then
+    timer_show=$(($SECONDS - $timer))
+    unset timer
+  fi
 }
 add-zsh-hook precmd prompt_hab_precmd
+
+function prompt_hab_preexec () {
+  timer=${timer:-$SECONDS}
+}
+add-zsh-hook preexec prompt_hab_preexec
 
 ZSH_THEME_GIT_PROMPT_PREFIX="  %{$fg[yellow]%}«"
 ZSH_THEME_GIT_PROMPT_SUFFIX="»%{$reset_color%}"
