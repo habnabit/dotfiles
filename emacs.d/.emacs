@@ -37,6 +37,8 @@
            (package-install (car package) t)))
        packages))))
 
+(hab/update-packages)
+
 (add-to-list 'load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path "~/.emacs.d/pymacs")
 (load "~/.emacs.d/compy-specific/init.el")
@@ -44,8 +46,6 @@
   (interactive)
   (setenv "PATH" (mapconcat 'identity exec-path ":")))
 (fix-path)
-
-(hab/update-packages)
 
 (when (and (>= emacs-major-version 24)
            (>= emacs-minor-version 2))
