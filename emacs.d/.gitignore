@@ -4,4 +4,8 @@
 *.elc
 /server
 /tramp
+/elpa
+.emacs.desktop*
+/ac-comphist.dat
+/ido.last
 /nxhtml/etc/schema/xhtml-loader.rnc

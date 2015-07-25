@@ -1,27 +1,51 @@
-(add-to-list 'load-path "~/.emacs.d")
-(add-to-list 'load-path "~/.emacs.d/magit")
-(add-to-list 'load-path "~/.emacs.d/notmuch/emacs")
-(add-to-list 'load-path "~/.emacs.d/git-gutter")
-(add-to-list 'load-path "~/.emacs.d/popwin-el")
-(add-to-list 'load-path "~/.emacs.d/rainbow-delimiters")
-(add-to-list 'load-path "~/.emacs.d/markdown-mode")
-(add-to-list 'load-path "~/.emacs.d/web-mode")
+(require 'cl)
+(require 'package)
+(setq package-archives
+  '(("melpa" . "http://melpa.org/packages/")))
+(package-initialize)
+
+(defun hab/load-package-requirements-list ()
+  (mapcar
+   (lambda (r)
+     (when (null (string-match "^\\([^ ]+\\)\\(?: +\\([^ ]+\\)\\)?$" r))
+       (error "Bad requirement %S" r))
+     (cons (intern (match-string 1 r)) (match-string 2 r)))
+   (remove-if
+    (lambda (s) (= (length s) 0))
+    (mapcar
+     (lambda (x) (replace-regexp-in-string "\\s-*\\(?:#.*\\)?$" "" x))
+     (split-string
+      (with-temp-buffer
+        (insert-file-contents "~/.emacs.d/packages.txt")
+        (buffer-string))
+      "\n")))))
+
+(defun hab/package-up-to-date-p (package)
+  (apply 'package-installed-p package))
+
+(defun hab/update-packages ()
+  (interactive)
+  (let ((packages (remove-if #'hab/package-up-to-date-p
+                             (hab/load-package-requirements-list))))
+    (unless (null packages)
+      (message "Refreshing package database...")
+      (package-refresh-contents)
+      (message "Installing %d packages..." (length packages))
+      (mapc
+       (lambda (package)
+         (unless (hab/package-up-to-date-p package)
+           (package-install (car package) t)))
+       packages))))
+
+(add-to-list 'load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path "~/.emacs.d/pymacs")
-(add-to-list 'load-path "~/.emacs.d/tuareg")
-(add-to-list 'load-path "~/.emacs.d/ocaml")
-(add-to-list 'load-path "~/.emacs.d/autocomplete")
-(add-to-list 'load-path "~/.emacs.d/dash")
-(add-to-list 'load-path "~/.emacs.d/color-identifiers-mode")
-(add-to-list 'load-path "~/.emacs.d/flycheck")
-(add-to-list 'load-path "~/.emacs.d/solarized-emacs")
-(add-to-list 'load-path "~/.emacs.d/git-modes")
-(add-to-list 'load-path "~/.emacs.d/rust-mode")
-(add-to-list 'load-path "~/.emacs.d/flycheck-rust")
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
   (setenv "PATH" (mapconcat 'identity exec-path ":")))
 (fix-path)
+
+(hab/update-packages)
 
 (when (and (>= emacs-major-version 24)
            (>= emacs-minor-version 2))
@@ -32,8 +56,6 @@
 (load "~/.emacs.d/nxhtml/autostart.el")
 (require 'magit)
 (require 'css-mode)
-(require 'moccur-edit)
-(require 'javascript-mode)
 (require 'haml-mode)
 (require 'gnus-art)
 (require 'notmuch)
@@ -41,9 +63,8 @@
 (require 'popwin)
 (require 'rainbow-delimiters)
 (require 'markdown-mode)
-(require 'jinja)
+(require 'jinja2-mode)
 (require 'web-mode)
-(require 'cython-mode)
 (require 'yaml-mode)
 (require 'parsley-mode)
 (require 'caml-types)
@@ -174,7 +195,6 @@ See URL `https://github.com/w3c/tidy-html5'."
 
 
 (when (boundp 'custom-theme-load-path)
-  (add-to-list 'custom-theme-load-path "~/.emacs.d/solarized-emacs")
   (setq solarized-high-contrast-mode-line t)
   (load-theme 'solarized-dark t)
   (global-hl-line-mode 1))
