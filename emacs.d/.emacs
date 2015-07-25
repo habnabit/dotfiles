@@ -50,6 +50,7 @@
 (require 'tuareg)
 (require 'auto-complete)
 (require 'flycheck)
+(require 'flycheck-jsx)
 (require 'flycheck-rust)
 
 (autoload 'pymacs-apply "pymacs")
@@ -80,7 +81,7 @@
 (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
-(add-to-list 'auto-mode-alist '("\\.js\\'" . js-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx?\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.mako\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
@@ -94,6 +95,7 @@
 (add-to-list 'interpreter-mode-alist '("python" . python-mode))
 (setq web-mode-engines-alist '(("django" . "\\.jinja2\\'")
                                ("velocity" . "\\.tmpl\\'")))
+(flycheck-add-mode 'javascript-jshint 'web-mode)
 
 (autoload 'tuareg-mode "tuareg" (interactive) "Major mode for editing Caml code." t)
 (autoload 'camldebug "camldebug" (interactive) "Debug caml mode")
@@ -102,6 +104,11 @@
 (add-hook 'php-mode-hook
           #'(lambda ()
               (setq c-basic-offset 4)))
+(add-hook 'web-mode-hook
+          #'(lambda ()
+              (when (or (equal web-mode-content-type "jsx")
+                        (equal web-mode-content-type "javascript"))
+                (setq web-mode-code-indent-offset 2))))
 
 (defvar user-temporary-file-directory "~/.emacs.d/backups/")
 (setq backup-by-copying t)
