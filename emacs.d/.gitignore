@@ -8,4 +8,5 @@
 .emacs.desktop*
 /ac-comphist.dat
 /ido.last
+/abbrev_defs
 /nxhtml/etc/schema/xhtml-loader.rnc
