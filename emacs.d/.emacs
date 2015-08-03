@@ -1,7 +1,9 @@
 (require 'cl)
 (require 'package)
 (setq package-archives
-  '(("melpa" . "http://melpa.org/packages/")))
+      '(("melpa" . "http://melpa.org/packages/")
+        ("marmalade" . "https://marmalade-repo.org/packages/")
+        ("gnu" . "http://elpa.gnu.org/packages/")))
 (package-initialize)
 
 (defun hab/load-package-requirements-list ()
@@ -34,7 +36,7 @@
       (mapc
        (lambda (package)
          (unless (hab/package-up-to-date-p package)
-           (package-install (car package) t)))
+           (package-install (car package))))
        packages))))
 
 (hab/update-packages)
