@@ -19,6 +19,7 @@
         backupref = reset --hard HEAD@{1}
 [push]
 	default = current
+        followTags = true
 [core]
 	excludesfile = ~/.gitignore_global
 [credential]
