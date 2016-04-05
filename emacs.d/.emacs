@@ -1,9 +1,9 @@
 (require 'cl)
 (require 'package)
 (setq package-archives
-      '(("melpa" . "http://melpa.org/packages/")
+      '(("melpa" . "https://melpa.org/packages/")
         ("marmalade" . "https://marmalade-repo.org/packages/")
-        ("gnu" . "http://elpa.gnu.org/packages/")))
+        ("elpa" . "https://elpa.gnu.org/packages/")))
 (package-initialize)
 
 (defun hab/load-package-requirements-list ()
