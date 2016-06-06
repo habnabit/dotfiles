@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::io::*;
+use std::process;
 
 const INDEX_STATII: &'static str = "MADRC";
 const WORKING_STATII: &'static str = "MD";
@@ -36,6 +37,19 @@ fn tally_counts_git(f: &mut BufRead) -> Result<BTreeMap<char, usize>> {
     Ok(counts)
 }
 
+fn run_git() -> Result<BTreeMap<char, usize>> {
+    let child = process::Command::new("git")
+        .arg("status").arg("--porcelain")
+        .stdin(process::Stdio::null())
+        .stdout(process::Stdio::piped())
+        .stderr(process::Stdio::inherit())
+        .spawn();
+    let mut child = try!(child);
+    let counts = try!(tally_counts_git(&mut BufReader::new(child.stdout.as_mut().unwrap())));
+    try!(child.wait());
+    Ok(counts)
+}
+
 fn format_counts(order: &str, counts: &BTreeMap<char, usize>) -> Vec<u8> {
     let mut sorted: Vec<_> = counts
         .into_iter()
@@ -53,11 +67,7 @@ fn format_counts(order: &str, counts: &BTreeMap<char, usize>) -> Vec<u8> {
 }
 
 fn main() {
-    let counts = {
-        let f = stdin();
-        let counts = tally_counts_git(&mut f.lock()).expect("couldn't read counts");
-        counts
-    };
+    let counts = run_git().expect("couldn't read counts");
     {
         let mut f = stdout();
         f.write_all(&format_counts(STATUS_ORDER, &counts)[..]).expect("couldn't write counts");
