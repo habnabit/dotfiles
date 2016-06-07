@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Aaron Gallagher <_@habnab.it>"]
 
 [dependencies]
+clap = "2.5.2"
+# maybe later
+# git2 = {version = "0.4.3", default-features = false}
