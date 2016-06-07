@@ -6,8 +6,9 @@ local to_hash="$(whoami)@$(hostname)"
 local host_color=$(printf "%03d" "$(echo ${to_hash} | openssl sha1 -binary | od -N1 -tu2 -An)")
 local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
-local dircount='$(ls -1 | wc -l | sed "s: ::g")'
-local git_branch='$(git_prompt_info)%{$reset_color%}'
+local prompt_utils_bin=$(printf "${ZSH}/helper-bins/bin/hab-prompt-utils-%s-%s" $(uname -sm))
+local dircount='$(${prompt_utils_bin} file-count)'
+local vc_info='$(vc_prompt_info)%{$reset_color%}'
 local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%?) \${timer_show}s ↵%{$reset_color%}"
 local timer
 local timer_show="0"
@@ -16,18 +17,15 @@ if [[ $(id -u) = 0 ]]; then
   prompt_char='#'
 fi
 
-function git_prompt_status () {
-  git status --porcelain | $ZSH/parse-git-status
+function vc_prompt_status () {
+  vc status --porcelain | $ZSH/parse-vc-status
 }
 
-function git_prompt_info () {
-  ref=$(git symbolic-ref HEAD 2>/dev/null) || {
-      ref="$(git log -n1 --pretty=%h 2>/dev/null)" || return
-      ref="detached $ref"
-  }
-  gst=$(git_prompt_status)
-  if [ $gst ]; then gst=": ${gst}"; fi
-  echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${gst}$ZSH_THEME_GIT_PROMPT_SUFFIX"
+function vc_prompt_info () {
+  local vc_status="$(${prompt_utils_bin} vc-status)"
+  if [[ -n $vc_status ]]; then
+      echo "$ZSH_THEME_VC_PROMPT_PREFIX${vc_status}$ZSH_THEME_VC_PROMPT_SUFFIX"
+  fi
 }
 
 typeset -A jobtypes
@@ -60,11 +58,11 @@ function prompt_hab_preexec () {
 }
 add-zsh-hook preexec prompt_hab_preexec
 
-ZSH_THEME_GIT_PROMPT_PREFIX="  %{$fg[yellow]%}«"
-ZSH_THEME_GIT_PROMPT_SUFFIX="»%{$reset_color%}"
+ZSH_THEME_VC_PROMPT_PREFIX="  %{$fg[yellow]%}«"
+ZSH_THEME_VC_PROMPT_SUFFIX="»%{$reset_color%}"
 VIRTUAL_ENV_DISABLE_PROMPT=1
 
 PROMPT="
-╭── \${environment_indicator}${current_dir}: ${dircount}${git_branch}${return_code}
+╭── \${environment_indicator}${current_dir}: ${dircount}${vc_info}${return_code}
 ╰─ ${user_host} %{$fg[blue]%}${prompt_char}%{$reset_color%} "
 RPROMPT="\${job_counts}"
