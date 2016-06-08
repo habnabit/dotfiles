@@ -1,4 +1,5 @@
 #!/bin/sh -eux
 cargo build --release --target="$1"
-bin=$(printf "hab-prompt-utils-%s-%s" $(uname -sm))
-cp target/"$1"/release/hab-prompt-utils bin/"${bin}"
+bindir=$(printf "bin-%s-%s" $(uname -sm))
+mkdir -p "${bindir}"
+cp target/"$1"/release/hab-prompt-utils "${bindir}/"
