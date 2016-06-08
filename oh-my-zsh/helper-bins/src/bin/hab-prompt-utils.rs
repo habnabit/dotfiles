@@ -30,7 +30,7 @@ fn limited_foreach<I, F>(iter: I, mut func: F) -> Result<bool>
           F: FnMut(I::Item) -> Result<()>,
 {
     for (e, item) in iter.into_iter().enumerate() {
-        if e > ITERATION_LIMIT {
+        if e >= ITERATION_LIMIT {
             return Ok(true);
         }
         try!(func(item));
