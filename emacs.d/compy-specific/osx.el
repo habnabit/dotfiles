@@ -5,6 +5,9 @@
 (global-set-key (kbd "s-`") (lambda () (interactive) (other-frame 1)))
 (global-set-key (kbd "s-~") (lambda () (interactive) (other-frame -1)))
 (global-set-key (kbd "<kp-delete>") 'delete-char)
+(global-unset-key (kbd "C-z"))
+(global-unset-key (kbd "C-x C-z"))
+(global-unset-key (kbd "s-m"))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
