@@ -30,6 +30,13 @@ fi
 
 source $HOME/.dotfiles/compy-specific.sh
 export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
+
+local helpers_dir=$(printf "${ZSH}/helper-bins/bin-%s-%s" $(uname -sm))
+if [[ -d ${helpers_dir}-alt ]]; then
+   local helpers_dir="${helpers_dir}-alt"
+fi
+export PATH="$helpers_dir:$PATH"
+
 bindkey '\e.' insert-last-word
 setopt transientrprompt extendedhistory histignoredups histexpiredupsfirst \
     histfindnodups histsavenodups histreduceblanks

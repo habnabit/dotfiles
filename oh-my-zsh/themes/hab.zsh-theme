@@ -6,8 +6,7 @@ local to_hash="$(whoami)@$(hostname)"
 local host_color=$(printf "%03d" "$(echo ${to_hash} | openssl sha1 -binary | od -N1 -tu2 -An)")
 local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
-local prompt_utils_bin=$(printf "${ZSH}/helper-bins/bin/hab-prompt-utils-%s-%s" $(uname -sm))
-local dircount='$(${prompt_utils_bin} file-count)'
+local dircount='$(hab-prompt-utils file-count)'
 local vc_info='$(vc_prompt_info)%{$reset_color%}'
 local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%?) \${timer_show}s ↵%{$reset_color%}"
 local timer
@@ -22,7 +21,7 @@ function vc_prompt_status () {
 }
 
 function vc_prompt_info () {
-  local vc_status="$(${prompt_utils_bin} vc-status)"
+  local vc_status="$(hab-prompt-utils vc-status)"
   if [[ -n $vc_status ]]; then
       echo "$ZSH_THEME_VC_PROMPT_PREFIX${vc_status}$ZSH_THEME_VC_PROMPT_SUFFIX"
   fi
