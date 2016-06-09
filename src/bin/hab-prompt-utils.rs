@@ -1,8 +1,8 @@
-extern crate clap;
+#[macro_use] extern crate clap;
 extern crate sha1;
 
 use std::collections::BTreeMap;
-use std::io::*;
+use std::io::{BufRead, BufReader, Error, ErrorKind, Result, stdout};
 use std::{env, fs, path, process};
 
 const GIT_INDEX_STATII: &'static str = "MADRC";
@@ -107,13 +107,14 @@ fn run_hg_status(mut base: process::Command) -> Result<(BTreeMap<char, usize>, b
     Ok(ret)
 }
 
-fn format_counts(order: &str, counts: &BTreeMap<char, usize>, truncated: bool, show_total: bool) -> Vec<u8> {
+fn format_counts(order: &str, counts: &BTreeMap<char, usize>, truncated: bool, show_total: bool) -> String {
+    use std::fmt::Write;
     let mut sorted: Vec<_> = counts
         .into_iter()
         .filter_map(|(&c, &count)| order.find(c).map(|pos| (pos, c, count)))
         .collect();
     sorted.sort();
-    let mut ret = Vec::new();
+    let mut ret = String::new();
     for &(_, c, count) in &sorted {
         write!(ret, "{}{} ", count, c).unwrap();
     }
@@ -121,11 +122,8 @@ fn format_counts(order: &str, counts: &BTreeMap<char, usize>, truncated: bool, s
         let total = counts.values().fold(0, |acc, &x| acc + x);
         write!(ret, "≡{} ", total).unwrap();
     }
-    if ret.pop().is_some() {
-        if truncated {
-            ret.extend("…".as_bytes());
-        }
-        ret.push(b'\n');
+    if ret.pop().is_some() && truncated {
+        ret.push('…');
     }
     ret
 }
@@ -307,28 +305,25 @@ impl VcLoc {
     }
 }
 
-fn vc_status() -> Result<()> {
+fn vc_status() -> Result<String> {
+    use std::fmt::Write;
     let vc_loc = match try!(VcLoc::from_current_dir()) {
         Some(v) => v,
-        None => return Ok(()),
+        None => return Ok("".to_string()),
     };
     let (counts, truncated) = try!(vc_loc.get_counts());
-    let mut stdout_ = stdout();
-    try!(write!(stdout_, "{} {}", vc_loc.vc.as_name(), try!(vc_loc.get_branch())));
+    let mut ret = String::new();
+    write!(ret, "{} {}", vc_loc.vc.as_name(), try!(vc_loc.get_branch())).unwrap();
     let counts = format_counts(STATUS_ORDER, &counts, truncated, false);
     if !counts.is_empty() {
-        try!(write!(stdout_, ": "));
-        try!(stdout_.write_all(&counts[..]));
-    } else {
-        try!(write!(stdout_, "\n"));
+        write!(ret, ": {}", counts).unwrap();
     }
-    Ok(())
+    Ok(ret)
 }
 
-fn file_count() -> Result<()> {
+fn file_count() -> Result<String> {
     let (counts, truncated) = try!(count_files());
-    try!(stdout().write_all(&format_counts(FILE_ORDER, &counts, truncated, true)[..]));
-    Ok(())
+    Ok(format_counts(FILE_ORDER, &counts, truncated, true))
 }
 
 fn pick_color(choices: Vec<u8>, allow_all: bool) -> u8 {
@@ -344,48 +339,60 @@ fn pick_color(choices: Vec<u8>, allow_all: bool) -> u8 {
     248
 }
 
-fn colorhash(input: &[u8], allow_all: bool) -> Result<()> {
+fn colorhash(input: &[u8], allow_all: bool) -> Result<String> {
     let mut h = sha1::Sha1::new();
     h.update(input);
     h.update(&[b'\n']);
-    try!(write!(stdout(), "{:03}", pick_color(h.digest(), allow_all)));
+    Ok(format!("{:03}", pick_color(h.digest(), allow_all)))
+ }
+
+fn actually_emit(s: String, no_newline: bool) -> Result<()> {
+    use std::io::Write;
+    let stdout_ = stdout();
+    let mut stdout_locked = stdout_.lock();
+    try!(stdout_locked.write_all(&s.as_bytes()[..]));
+    if !no_newline {
+        try!(stdout_locked.write_all(b"\n"));
+    }
     Ok(())
 }
 
 fn main() {
-    let matches = clap::App::new("hab-prompt-utils")
-        .setting(clap::AppSettings::SubcommandRequired)
-        .version("0.1")
-        .author("Aaron Gallagher <_@habnab.it>")
-        .about("Prompt utilities")
-        .subcommand(
-            clap::SubCommand::with_name("vc-status")
-                .about("Write a line describing version control status, if possible")
-        )
-        .subcommand(
-            clap::SubCommand::with_name("file-count")
-                .about("Count the number of files in the current directory")
-        )
-        .subcommand(
-            clap::SubCommand::with_name("colorhash")
-                .about("Hash a value into a 256-color number")
-                .arg(
-                    clap::Arg::with_name("STRING")
-                        .required(true))
-                .arg(
-                    clap::Arg::with_name("allow-all-colors")
-                        .short("a")
-                        .long("allow-all-colors")
-                        .help("Don't filter out hard-to-read colors"))
-        )
-        .get_matches();
-    if let Some(_) = matches.subcommand_matches("vc-status") {
-        vc_status()
-    } else if let Some(_) = matches.subcommand_matches("file-count") {
-        file_count()
-    } else if let Some(m) = matches.subcommand_matches("colorhash") {
-        use std::os::unix::ffi::OsStrExt;
-        colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
-                  m.is_present("allow-all-colors"))
+    let matches = clap_app!
+        (hab_utils =>
+         (version: "0.1")
+         (author: "Aaron Gallagher <_@habnab.it>")
+         (about: "General utilities")
+         (@setting SubcommandRequired)
+         (@subcommand emit =>
+          (about: "Emit a string")
+          (@arg no_newline: -n "Don't emit a trailing newline")
+          (@setting SubcommandRequired)
+          (@subcommand vc_status =>
+           (aliases: &["vc-status"])
+           (about: "Write a line describing version control status, if possible")
+          )
+          (@subcommand file_count =>
+           (aliases: &["file-count"])
+           (about: "Count the number of files in the current directory")
+          )
+          (@subcommand color_hash =>
+           (aliases: &["color-hash"])
+           (about: "Hash a value into a 256-color number")
+           (@arg STRING: +required)
+           (@arg allow_all_colors: -a --allow-all-colors "Don't filter out hard-to-read colors")
+          )
+         )
+        ).get_matches();
+    if let Some(m) = matches.subcommand_matches("emit") {
+        if let Some(_) = m.subcommand_matches("vc_status") {
+            vc_status()
+        } else if let Some(_) = m.subcommand_matches("file_count") {
+            file_count()
+        } else if let Some(m) = m.subcommand_matches("color_hash") {
+            use std::os::unix::ffi::OsStrExt;
+            colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
+                      m.is_present("allow_all_colors"))
+        } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
     } else { return }.expect("failure running subcommand")
 }
