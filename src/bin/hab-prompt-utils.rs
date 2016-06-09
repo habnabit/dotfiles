@@ -1,4 +1,5 @@
 extern crate clap;
+extern crate sha1;
 
 use std::collections::BTreeMap;
 use std::io::*;
@@ -330,6 +331,27 @@ fn file_count() -> Result<()> {
     Ok(())
 }
 
+fn pick_color(choices: Vec<u8>, allow_all: bool) -> u8 {
+    for c in choices {
+        if allow_all || match c {
+            22 ... 51 => true,
+            58 ... 230 => true,
+            _ => false,
+        } {
+            return c;
+        }
+    }
+    248
+}
+
+fn colorhash(input: &[u8], allow_all: bool) -> Result<()> {
+    let mut h = sha1::Sha1::new();
+    h.update(input);
+    h.update(&[b'\n']);
+    try!(write!(stdout(), "{:03}", pick_color(h.digest(), allow_all)));
+    Ok(())
+}
+
 fn main() {
     let matches = clap::App::new("hab-prompt-utils")
         .setting(clap::AppSettings::SubcommandRequired)
@@ -344,10 +366,26 @@ fn main() {
             clap::SubCommand::with_name("file-count")
                 .about("Count the number of files in the current directory")
         )
+        .subcommand(
+            clap::SubCommand::with_name("colorhash")
+                .about("Hash a value into a 256-color number")
+                .arg(
+                    clap::Arg::with_name("STRING")
+                        .required(true))
+                .arg(
+                    clap::Arg::with_name("allow-all-colors")
+                        .short("a")
+                        .long("allow-all-colors")
+                        .help("Don't filter out hard-to-read colors"))
+        )
         .get_matches();
     if let Some(_) = matches.subcommand_matches("vc-status") {
-        vc_status().expect("couldn't run vc status");
+        vc_status()
     } else if let Some(_) = matches.subcommand_matches("file-count") {
-        file_count().expect("couldn't count files");
-    }
+        file_count()
+    } else if let Some(m) = matches.subcommand_matches("colorhash") {
+        use std::os::unix::ffi::OsStrExt;
+        colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
+                  m.is_present("allow-all-colors"))
+    } else { return }.expect("failure running subcommand")
 }
