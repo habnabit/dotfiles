@@ -3,10 +3,10 @@ autoload -U add-zsh-hook
 
 local prompt_char='$'
 local to_hash="$(whoami)@$(hostname)"
-local host_color=$(printf "%03d" "$(echo ${to_hash} | openssl sha1 -binary | od -N1 -tu2 -An)")
+local host_color=$(hab-prompt-utils emit color-hash "${to_hash}")
 local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
-local dircount='$(hab-prompt-utils file-count)'
+local dircount='$(hab-prompt-utils emit file-count)'
 local vc_info='$(vc_prompt_info)%{$reset_color%}'
 local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%?) \${timer_show}s ↵%{$reset_color%}"
 local timer
@@ -16,12 +16,8 @@ if [[ $(id -u) = 0 ]]; then
   prompt_char='#'
 fi
 
-function vc_prompt_status () {
-  vc status --porcelain | $ZSH/parse-vc-status
-}
-
 function vc_prompt_info () {
-  local vc_status="$(hab-prompt-utils vc-status)"
+  local vc_status="$(hab-prompt-utils emit vc-status)"
   if [[ -n $vc_status ]]; then
       echo "$ZSH_THEME_VC_PROMPT_PREFIX${vc_status}$ZSH_THEME_VC_PROMPT_SUFFIX"
   fi
