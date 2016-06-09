@@ -7,6 +7,12 @@ export ZSH=$HOME/.dotfiles/oh-my-zsh
 # Look in ~/.oh-my-zsh/themes/
 export ZSH_THEME="hab"
 
+local helpers_dir=$(printf "${ZSH}/helper-bins/bin-%s-%s" $(uname -sm))
+if [[ -d ${helpers_dir}-alt ]]; then
+   local helpers_dir="${helpers_dir}-alt"
+fi
+export PATH="${PATH}:${helpers_dir}"
+
 # Set to this to use case-sensitive completion
 # export CASE_SENSITIVE="true"
 
@@ -30,12 +36,6 @@ fi
 
 source $HOME/.dotfiles/compy-specific.sh
 export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
-
-local helpers_dir=$(printf "${ZSH}/helper-bins/bin-%s-%s" $(uname -sm))
-if [[ -d ${helpers_dir}-alt ]]; then
-   local helpers_dir="${helpers_dir}-alt"
-fi
-export PATH="$helpers_dir:$PATH"
 
 bindkey '\e.' insert-last-word
 setopt transientrprompt extendedhistory histignoredups histexpiredupsfirst \
