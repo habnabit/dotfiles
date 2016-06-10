@@ -8,10 +8,10 @@ use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Error, ErrorKind, Result, stdout};
 use std::{env, fmt, fs, path, process, time};
 
-const GIT_INDEX_STATII: &'static str = "MADRC";
-const GIT_WORKING_STATII: &'static str = "MD";
+const GIT_INDEX_STATII: &'static str = "TMADRC";
+const GIT_WORKING_STATII: &'static str = "TMD";
 const HG_STATII: &'static str = "MAR?";
-const STATUS_ORDER: &'static str = "UMADRCmd?";
+const STATUS_ORDER: &'static str = "UTMADRCtmd?";
 const FILE_ORDER: &'static str = ".-/l?";
 const ITERATION_LIMIT: usize = 1000;
 
