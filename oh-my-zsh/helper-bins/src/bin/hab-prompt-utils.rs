@@ -65,20 +65,6 @@ fn tally_counts_git(f: &mut BufRead) -> Result<(BTreeMap<char, usize>, bool)> {
     Ok((counts, truncated))
 }
 
-fn run_git_status(mut base: process::Command) -> Result<(BTreeMap<char, usize>, bool)> {
-    let child = base
-        .arg("status").arg("--porcelain")
-        .stdout(process::Stdio::piped())
-        .spawn();
-    let mut child = try!(child);
-    let ret = {
-        let stdout = child.stdout.take().unwrap();
-        try!(tally_counts_git(&mut BufReader::new(stdout)))
-    };
-    try!(child.wait());
-    Ok(ret)
-}
-
 fn tally_counts_hg(f: &mut BufRead) -> Result<(BTreeMap<char, usize>, bool)> {
     let mut counts = BTreeMap::new();
     let truncated = try!(limited_foreach(f.lines(), |line| {
@@ -94,20 +80,6 @@ fn tally_counts_hg(f: &mut BufRead) -> Result<(BTreeMap<char, usize>, bool)> {
         Ok(())
     }));
     Ok((counts, truncated))
-}
-
-fn run_hg_status(mut base: process::Command) -> Result<(BTreeMap<char, usize>, bool)> {
-    let child = base
-        .arg("status")
-        .stdout(process::Stdio::piped())
-        .spawn();
-    let mut child = try!(child);
-    let ret = {
-        let stdout = child.stdout.take().unwrap();
-        try!(tally_counts_hg(&mut BufReader::new(stdout)))
-    };
-    try!(child.wait());
-    Ok(ret)
 }
 
 fn format_counts(order: &str, counts: &BTreeMap<char, usize>, truncated: bool, show_total: bool) -> String {
@@ -250,10 +222,38 @@ impl VcLoc {
         cmd
     }
 
+    fn run_git_status(&self) -> Result<(BTreeMap<char, usize>, bool)> {
+        let child = self.command_setup()
+            .arg("status").arg("--porcelain")
+            .stdout(process::Stdio::piped())
+            .spawn();
+        let mut child = try!(child);
+        let ret = {
+            let stdout = child.stdout.take().unwrap();
+            try!(tally_counts_git(&mut BufReader::new(stdout)))
+        };
+        try!(child.wait());
+        Ok(ret)
+    }
+
+    fn run_hg_status(&self) -> Result<(BTreeMap<char, usize>, bool)> {
+        let child = self.command_setup()
+            .arg("status")
+            .stdout(process::Stdio::piped())
+            .spawn();
+        let mut child = try!(child);
+        let ret = {
+            let stdout = child.stdout.take().unwrap();
+            try!(tally_counts_hg(&mut BufReader::new(stdout)))
+        };
+        try!(child.wait());
+        Ok(ret)
+    }
+
     fn get_counts(&self) -> Result<(BTreeMap<char, usize>, bool)> {
         match &self.vc {
-            &Vc::Git => run_git_status(self.command_setup()),
-            &Vc::Hg => run_hg_status(self.command_setup()),
+            &Vc::Git => self.run_git_status(),
+            &Vc::Hg => self.run_hg_status(),
         }
     }
 
