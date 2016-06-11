@@ -8,3 +8,6 @@ clap = {version = "2.5.2", features = ["unstable"]}
 sha1 = "0.1.1"
 # maybe later
 # git2 = {version = "0.4.3", default-features = false}
+
+[dev-dependencies]
+fnconcat = "*"
