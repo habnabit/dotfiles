@@ -365,6 +365,29 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     Ok(())
 }
 
+fn zsh_precmd_map(before: time::Duration, after: time::Duration) -> Result<BTreeMap<&'static str, String>> {
+    let span = after - before;
+    let mut results = BTreeMap::new();
+    results.insert("duration", format!("{}", PrettyDuration(span)));
+    results.insert("vc", try!(vc_status()));
+    results.insert("files", try!(file_count()));
+    Ok(results)
+}
+
+fn zsh_precmd(before: time::Duration, after: time::Duration) -> Result<()> {
+    use std::io::Write;
+    let map = try!(zsh_precmd_map(before, after));
+    let mut bytes: Vec<u8> = vec![];
+    for (k, v) in &map {
+        bytes.extend(k.as_bytes());
+        bytes.push(0);
+        bytes.extend(v.as_bytes());
+        bytes.push(0);
+    }
+    bytes.pop();
+    stdout().write_all(&bytes[..])
+}
+
 fn main() {
     let matches = clap_app!
         (hab_utils =>
@@ -391,6 +414,13 @@ fn main() {
            (@arg allow_all_colors: -a --allow-all-colors "Don't filter out hard-to-read colors")
           )
          )
+         (@subcommand precmd =>
+          (about: "Do everything the zsh precmd would need")
+          (@arg BSECONDS: +required)
+          (@arg BNANOSECONDS: +required)
+          (@arg ASECONDS: +required)
+          (@arg ANANOSECONDS: +required)
+         )
         ).get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
         if let Some(_) = m.subcommand_matches("vc_status") {
@@ -402,6 +432,14 @@ fn main() {
             colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
                       m.is_present("allow_all_colors"))
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
+    } else if let Some(m) = matches.subcommand_matches("precmd") {
+        let before = time::Duration::new(
+            value_t!(m, "BSECONDS", u64).unwrap_or_else(|e| e.exit()),
+            value_t!(m, "BNANOSECONDS", u32).unwrap_or_else(|e| e.exit()));
+        let after = time::Duration::new(
+            value_t!(m, "ASECONDS", u64).unwrap_or_else(|e| e.exit()),
+            value_t!(m, "ANANOSECONDS", u32).unwrap_or_else(|e| e.exit()));
+        zsh_precmd(before, after)
     } else { return }.expect("failure running subcommand")
 }
 
