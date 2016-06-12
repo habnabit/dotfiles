@@ -456,7 +456,7 @@ impl fmt::Display for PrettyDuration {
                 try!(write!(f, " {}s", secs));
             }
         } else {
-            let fsecs = secs as f64 + (self.0.subsec_nanos() as f64 / 1_000_000.);
+            let fsecs = secs as f64 + (self.0.subsec_nanos() as f64 / 1_000_000_000.);
             let prec = f.precision().unwrap_or(2);
             try!(write!(f, "{:.*}s", prec, SigFigFloat(fsecs)));
         }
@@ -502,10 +502,15 @@ mod tests {
     parametrize_test!{test_pretty_duration, [
         (s: u64, n: u32, r: &'static str),
         (0, 0, "0s"),
+        (0, 234_000_000, "0.23s"),
+        (0, 236_000_000, "0.24s"),
         (1, 0, "1.0s"),
-        (1, 100_000, "1.1s"),
+        (1, 100_000_000, "1.1s"),
+        (5, 100_000_000, "5.1s"),
+        (5, 260_000_000, "5.3s"),
+        (50, 100_000, "50s"),
         (60, 0, "1m"),
-        (60, 1000, "1m"),
+        (60, 100_000, "1m"),
         (120, 0, "2m"),
         (3600, 0, "1h"),
         (3660, 0, "1h 1m"),
