@@ -405,7 +405,7 @@ fn main() {
     } else { return }.expect("failure running subcommand")
 }
 
-fn float_precision(v: f64, sig_figs: u32) -> usize {
+fn float_precision(v: f64, sig_figs: usize) -> usize {
     let v = v.abs();
     if v == 0f64 {
         return 0;
@@ -418,7 +418,19 @@ fn float_precision(v: f64, sig_figs: u32) -> usize {
     }
 }
 
-struct PrettyDuration(time::Duration, u32);
+struct SigFigFloat(f64);
+
+impl fmt::Display for SigFigFloat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> std::result::Result<(), fmt::Error> {
+        if let Some(prec) = f.precision() {
+            write!(f, "{:.*}", float_precision(self.0, prec), self.0)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+
+struct PrettyDuration(time::Duration);
 
 const TIME_UNITS: [(&'static str, u64); 3] = [
     ("d", 60 * 60 * 24),
@@ -445,7 +457,8 @@ impl fmt::Display for PrettyDuration {
             }
         } else {
             let fsecs = secs as f64 + (self.0.subsec_nanos() as f64 / 1_000_000.);
-            try!(write!(f, "{:.*}s", float_precision(fsecs, self.1), fsecs));
+            let prec = f.precision().unwrap_or(2);
+            try!(write!(f, "{:.*}s", prec, SigFigFloat(fsecs)));
         }
         Ok(())
     }
@@ -458,7 +471,7 @@ mod tests {
     use super::{PrettyDuration, float_precision};
 
     parametrize_test!{test_float_precision_formatting, [
-        (v: f64, s: u32, r: &'static str),
+        (v: f64, s: usize, r: &'static str),
         (100.,      2, "100"),
         ( 10.,      2, "10"),
         (  1.,      2, "1.0"),
@@ -487,20 +500,20 @@ mod tests {
     }}
 
     parametrize_test!{test_pretty_duration, [
-        (s: u64, n: u32, p: u32, r: &'static str),
-        (0, 0, 2, "0s"),
-        (1, 0, 2, "1.0s"),
-        (1, 100_000, 2, "1.1s"),
-        (60, 0, 2, "1m"),
-        (60, 1000, 2, "1m"),
-        (120, 0, 2, "2m"),
-        (3600, 0, 2, "1h"),
-        (3660, 0, 2, "1h 1m"),
-        (86460, 0, 2, "1d 1m"),
-        (93780, 0, 2, "1d 2h 3m"),
-        (93784, 0, 2, "1d 2h 3m 4s"),
+        (s: u64, n: u32, r: &'static str),
+        (0, 0, "0s"),
+        (1, 0, "1.0s"),
+        (1, 100_000, "1.1s"),
+        (60, 0, "1m"),
+        (60, 1000, "1m"),
+        (120, 0, "2m"),
+        (3600, 0, "1h"),
+        (3660, 0, "1h 1m"),
+        (86460, 0, "1d 1m"),
+        (93780, 0, "1d 2h 3m"),
+        (93784, 0, "1d 2h 3m 4s"),
     ], {
         let duration = Duration::new(s, n);
-        assert_eq!(format!("{}", PrettyDuration(duration, p)), r);
+        assert_eq!(format!("{}", PrettyDuration(duration)), r);
     }}
 }
