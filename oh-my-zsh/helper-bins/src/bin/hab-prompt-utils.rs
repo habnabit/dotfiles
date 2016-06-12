@@ -56,9 +56,14 @@ fn tally_counts_git(f: &mut BufRead) -> Result<(BTreeMap<char, usize>, bool)> {
             (_, 'U') |
             ('D', 'D') |
             ('A', 'A') => counts.increment('U'),
-            (c, _) if GIT_INDEX_STATII.contains(c) => counts.increment(c),
-            (_, c) if GIT_WORKING_STATII.contains(c) => counts.increment(tolower(c)),
-            _ => (),
+            (i, w) => {
+                if GIT_INDEX_STATII.contains(i) {
+                    counts.increment(i)
+                }
+                if GIT_WORKING_STATII.contains(w) {
+                    counts.increment(tolower(w))
+                }
+            },
         };
         Ok(())
     }));
