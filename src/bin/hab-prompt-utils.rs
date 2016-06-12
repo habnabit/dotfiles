@@ -365,18 +365,22 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     Ok(())
 }
 
-fn zsh_precmd_map(before: time::Duration, after: time::Duration) -> Result<BTreeMap<&'static str, String>> {
-    let span = after - before;
+fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>) -> Result<BTreeMap<&'static str, String>> {
     let mut results = BTreeMap::new();
-    results.insert("duration", format!("{}", PrettyDuration(span)));
+    if let Some((before, after)) = timers {
+        let span = after - before;
+        results.insert("duration", format!("{}", PrettyDuration(span)));
+    } else {
+        results.insert("duration", "—".to_string());
+    }
     results.insert("vc", try!(vc_status()));
     results.insert("files", try!(file_count()));
     Ok(results)
 }
 
-fn zsh_precmd(before: time::Duration, after: time::Duration) -> Result<()> {
+fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>) -> Result<()> {
     use std::io::Write;
-    let map = try!(zsh_precmd_map(before, after));
+    let map = try!(zsh_precmd_map(timers));
     let mut bytes: Vec<u8> = vec![];
     for (k, v) in &map {
         bytes.extend(k.as_bytes());
@@ -416,10 +420,7 @@ fn main() {
          )
          (@subcommand precmd =>
           (about: "Do everything the zsh precmd would need")
-          (@arg BSECONDS: +required)
-          (@arg BNANOSECONDS: +required)
-          (@arg ASECONDS: +required)
-          (@arg ANANOSECONDS: +required)
+          (@arg TIMERS: ...)
          )
         ).get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
@@ -433,13 +434,13 @@ fn main() {
                       m.is_present("allow_all_colors"))
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
     } else if let Some(m) = matches.subcommand_matches("precmd") {
-        let before = time::Duration::new(
-            value_t!(m, "BSECONDS", u64).unwrap_or_else(|e| e.exit()),
-            value_t!(m, "BNANOSECONDS", u32).unwrap_or_else(|e| e.exit()));
-        let after = time::Duration::new(
-            value_t!(m, "ASECONDS", u64).unwrap_or_else(|e| e.exit()),
-            value_t!(m, "ANANOSECONDS", u32).unwrap_or_else(|e| e.exit()));
-        zsh_precmd(before, after)
+        let timers = values_t_or_exit!(m, "TIMERS", u64);
+        let durations = if timers.len() == 4 {
+            let before = time::Duration::new(timers[0], timers[1] as u32);
+            let after = time::Duration::new(timers[2], timers[3] as u32);
+            Some((before, after))
+        } else { None };
+        zsh_precmd(durations)
     } else { return }.expect("failure running subcommand")
 }
 
