@@ -434,7 +434,7 @@ fn main() {
                       m.is_present("allow_all_colors"))
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
     } else if let Some(m) = matches.subcommand_matches("precmd") {
-        let timers = values_t_or_exit!(m, "TIMERS", u64);
+        let timers = values_t!(m, "TIMERS", u64).unwrap_or_else(|e| e.exit());
         let durations = if timers.len() == 4 {
             let before = time::Duration::new(timers[0], timers[1] as u32);
             let after = time::Duration::new(timers[2], timers[3] as u32);
