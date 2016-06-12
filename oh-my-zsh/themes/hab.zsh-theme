@@ -1,23 +1,25 @@
 # -*- sh -*-
 autoload -U add-zsh-hook
+zmodload zsh/datetime
+
+typeset -A promptinfo
+typeset -a timer
 
 local prompt_char='$'
 local to_hash="$(whoami)@$(hostname)"
 local host_color=$(hab-prompt-utils emit color-hash "${to_hash}")
 local user_host='%{$FG[${host_color}]%}%n@%m%{$reset_color%}'
 local current_dir='%{$fg[cyan]%}%~%{$reset_color%}'
-local dircount='$(hab-prompt-utils emit file-count)'
+local dircount='${promptinfo[files]}'
 local vc_info='$(vc_prompt_info)%{$reset_color%}'
-local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%?) \${timer_show}s ↵%{$reset_color%}"
-local timer
-local timer_show="0"
+local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%? )\${promptinfo[duration]} ↵%{$reset_color%}"
 
 if [[ $(id -u) = 0 ]]; then
   prompt_char='#'
 fi
 
 function vc_prompt_info () {
-  local vc_status="$(hab-prompt-utils emit vc-status)"
+  local vc_status="${promptinfo[vc]}"
   if [[ -n $vc_status ]]; then
       echo "$ZSH_THEME_VC_PROMPT_PREFIX${vc_status}$ZSH_THEME_VC_PROMPT_SUFFIX"
   fi
@@ -26,6 +28,8 @@ function vc_prompt_info () {
 typeset -A jobtypes
 jobtypes=(running r suspended s done d)
 function prompt_hab_precmd () {
+  promptinfo=("${(0)$(hab-prompt-utils precmd ${timer} ${epochtime})}")
+  timer=()
   local jobs=''
   for type in ${(k)jobtypes}; do
     count=${(Mw)#jobstates#${type}}
@@ -41,15 +45,11 @@ function prompt_hab_precmd () {
     environment_indicator="${environment_indicator:+$environment_indicator }${venv_name}"
   fi
   environment_indicator=${environment_indicator:+"%{$fg[magenta]$environment_indicator%}%{$reset_color%} "}
-  if [ $timer ]; then
-    timer_show=$(($SECONDS - $timer))
-    unset timer
-  fi
 }
 add-zsh-hook precmd prompt_hab_precmd
 
 function prompt_hab_preexec () {
-  timer=${timer:-$SECONDS}
+  timer=($epochtime)
 }
 add-zsh-hook preexec prompt_hab_preexec
 
