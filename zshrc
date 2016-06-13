@@ -94,9 +94,9 @@ irc-mosh () {
 }
 
 gffm () {
-    git merge --ff-only ${1:-origin}/$(current_branch)
+    git merge --ff-only ${1:-origin}/$(hab-prompt-utils emit git-head-branch)
 }
 
 grbo () {
-    git rebase ${1:-origin}/$(current_branch)
+    git rebase ${1:-origin}/$(hab-prompt-utils emit git-head-branch)
 }

@@ -5,7 +5,7 @@
 extern crate sha1;
 
 use std::collections::BTreeMap;
-use std::io::{BufRead, BufReader, Error, ErrorKind, Result, stdout};
+use std::io::{BufRead, BufReader, Error, ErrorKind, Result, stdout, stderr};
 use std::{env, fmt, fs, path, process, time};
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
@@ -262,7 +262,11 @@ impl VcLoc {
         }
     }
 
-    fn get_git_branch(&self) -> Result<String> {
+    fn get_git_head_branch(&self) -> Result<Option<String>> {
+        match &self.vc {
+            &Vc::Git => (),
+            _ => return Ok(None),
+        }
         let output = self.command_setup()
             .arg("symbolic-ref").arg("HEAD")
             .stdout(process::Stdio::piped())
@@ -271,11 +275,19 @@ impl VcLoc {
         let output = try!(output);
         if output.status.success() {
             let git_ref = try!(from_utf8(output.stdout));
-            return Ok(
+            Ok(Some(
                 git_ref.as_str()
                     .trim_left_matches("refs/heads/")
                     .trim()
-                    .to_string());
+                    .to_string()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_git_branch(&self) -> Result<String> {
+        if let Some(head) = try!(self.get_git_head_branch()) {
+            return Ok(head);
         }
         let output = self.command_setup()
             .arg("show").arg("--pretty=%h").arg("-s")
@@ -354,6 +366,17 @@ fn colorhash(input: &[u8], allow_all: bool) -> Result<String> {
     Ok(format!("{:03}", pick_color(h.digest(), allow_all)))
  }
 
+fn git_head_branch() -> Result<String> {
+    use std::io::Write;
+    match try!(try!(VcLoc::from_current_dir()).map_or(Ok(None), |v| v.get_git_head_branch())) {
+        Some(head) => Ok(head),
+        None => {
+            try!(write!(stderr(), "no branch found for git HEAD\n"));
+            process::exit(111)
+        },
+    }
+}
+
 fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     use std::io::Write;
     let stdout_ = stdout();
@@ -417,6 +440,10 @@ fn main() {
            (@arg STRING: +required)
            (@arg allow_all_colors: -a --allow-all-colors "Don't filter out hard-to-read colors")
           )
+          (@subcommand git_head_branch =>
+           (aliases: &["git-head-branch"])
+           (about: "Find the branch associated with the git HEAD")
+          )
          )
          (@subcommand precmd =>
           (about: "Do everything the zsh precmd would need")
@@ -432,6 +459,8 @@ fn main() {
             use std::os::unix::ffi::OsStrExt;
             colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
                       m.is_present("allow_all_colors"))
+        } else if let Some(_) = m.subcommand_matches("git_head_branch") {
+            git_head_branch()
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
     } else if let Some(m) = matches.subcommand_matches("precmd") {
         let timers = values_t!(m, "TIMERS", u64).unwrap_or_else(|e| e.exit());
