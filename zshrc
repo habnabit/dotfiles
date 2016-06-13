@@ -65,6 +65,11 @@ mkproj () {
     cd "$dir"
 }
 
+mkc () {
+    mkdir -p "$1"
+    cd "$1"
+}
+
 t () {
     host=$1
     shift
