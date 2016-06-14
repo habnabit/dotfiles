@@ -42,20 +42,20 @@
 (hab/update-packages)
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
-(add-to-list 'load-path "~/.emacs.d/pymacs")
+;; (add-to-list 'load-path "~/.emacs.d/pymacs")
 (load "~/.emacs.d/compy-specific/init.el")
 (defun fix-path ()
   (interactive)
   (setenv "PATH" (mapconcat 'identity exec-path ":")))
 (fix-path)
 
-(when (and (>= emacs-major-version 24)
-           (>= emacs-minor-version 2))
-  (eval-after-load "mumamo"
-    '(setq mumamo-per-buffer-local-vars
-           (delq 'buffer-file-name mumamo-per-buffer-local-vars))))
+;; (when (and (>= emacs-major-version 24)
+;;            (>= emacs-minor-version 2))
+;;   (eval-after-load "mumamo"
+;;     '(setq mumamo-per-buffer-local-vars
+;;            (delq 'buffer-file-name mumamo-per-buffer-local-vars))))
 
-(load "~/.emacs.d/nxhtml/autostart.el")
+;; (load "~/.emacs.d/nxhtml/autostart.el")
 (require 'magit)
 (require 'css-mode)
 (require 'haml-mode)
@@ -68,8 +68,8 @@
 (require 'jinja2-mode)
 (require 'web-mode)
 (require 'yaml-mode)
-(require 'parsley-mode)
-(require 'caml-types)
+;; (require 'parsley-mode)
+;; (require 'caml-types)
 (require 'tuareg)
 (require 'auto-complete)
 (require 'flycheck)
@@ -101,7 +101,7 @@
 (add-hook 'after-init-hook #'global-flycheck-mode)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
-(add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
+;; (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx?\\'" . web-mode))
