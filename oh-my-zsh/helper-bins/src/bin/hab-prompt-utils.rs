@@ -2,11 +2,15 @@
 #![cfg_attr(test, plugin(fnconcat))]
 
 #[macro_use] extern crate clap;
+extern crate helper_bins;
 extern crate sha1;
 
 use std::collections::BTreeMap;
-use std::io::{BufRead, BufReader, Error, ErrorKind, Result, stdout, stderr};
-use std::{env, fmt, fs, path, process, time};
+use std::io::{BufRead, BufReader, stdout, stderr};
+use std::{env, fmt, fs, mem, path, process, time};
+
+use helper_bins::error::PromptResult as Result;
+use helper_bins::{PluginServer, plugin};
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
 const GIT_WORKING_STATII: &'static str = "TMD";
@@ -41,6 +45,109 @@ fn limited_foreach<I, F>(iter: I, mut func: F) -> Result<bool>
     }
     Ok(false)
 }
+
+
+struct Plugin {
+    name: String,
+    process: process::Child,
+    stdin: process::ChildStdin,
+    stdout: BufReader<process::ChildStdout>,
+    meta: plugin::InitializeResponse,
+}
+
+impl Plugin {
+    fn new(path: path::PathBuf) -> Result<Plugin> {
+        let process = process::Command::new(&path)
+            .stdin(process::Stdio::piped())
+            .stdout(process::Stdio::piped())
+            .spawn();
+        let mut process = try!(process);
+        let name = path.to_string_lossy().into_owned();
+        Ok(Plugin {
+            name: name,
+            stdin: process.stdin.take().unwrap(),
+            stdout: BufReader::new(process.stdout.take().unwrap()),
+            process: process,
+            meta: Default::default(),
+        })
+    }
+
+    fn issue_request(&mut self, req: &plugin::PluginRequest) -> Result<plugin::PluginResponse> {
+        Ok(try!(PluginServer::new(&mut self.stdout, &mut self.stdin).issue_request(req)))
+    }
+
+    fn initialize(&mut self) -> Result<()> {
+        let req = plugin::InitializeRequest::default();
+        if let plugin::PluginResponse::Initialize(resp) = try!(self.issue_request(&req.into())) {
+            mem::replace(&mut self.meta, resp);
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for Plugin {
+    fn fmt(&self, f: &mut fmt::Formatter) -> std::result::Result<(), fmt::Error> {
+        write!(f, "Plugin({:?}, @{}, meta: {:?})", self.name, self.process.id(), self.meta)
+    }
+}
+
+
+#[derive(Debug)]
+struct PluginLoader {
+    plugins: Vec<Plugin>,
+}
+
+impl PluginLoader {
+    fn new() -> PluginLoader {
+        PluginLoader {
+            plugins: vec![],
+        }
+    }
+
+    fn plugin_dir(&self) -> Option<path::PathBuf> {
+        match env::var("HAB_PROMPT_PLUGIN_DIR") {
+            Ok(d) => return Some(d.into()),
+            _ => (),
+        };
+        let mut plugin_dir = match env::home_dir() {
+            Some(h) => h,
+            None => return None,
+        };
+        plugin_dir.extend(&[".config", "hab-prompt", "plugins"]);
+        Some(plugin_dir)
+    }
+
+    fn load_plugins(&mut self) -> Result<()> {
+        let plugin_dir = match self.plugin_dir() {
+            Some(d) => d,
+            None => return Ok(()),
+        };
+        for file in try!(plugin_dir.read_dir()) {
+            let file = try!(file).path();
+            self.plugins.push(try!(Plugin::new(file)));
+        }
+        for plugin in &mut self.plugins {
+            try!(plugin.initialize());
+        }
+        Ok(())
+    }
+
+    fn test_vc_dir(&mut self, path: &path::Path) -> Result<Option<plugin::VcStatusResponse>> {
+        let mut req = plugin::VcStatusRequest::default();
+        req.cwd = path.to_string_lossy().into_owned();
+        let req = req.into();
+        for plugin in &mut self.plugins {
+            if !plugin.meta.handles_vc {
+                continue
+            }
+            if let plugin::PluginResponse::VcStatus(resp) = try!(plugin.issue_request(&req)) {
+                return Ok(Some(resp));
+            }
+        }
+        Ok(None)
+    }
+}
+
 
 fn tally_counts_git(f: &mut BufRead) -> Result<(BTreeMap<char, usize>, bool)> {
     let mut counts = BTreeMap::new();
@@ -134,7 +241,7 @@ fn count_files() -> Result<(BTreeMap<char, usize>, bool)> {
 
 fn path_dev(path: &path::Path) -> Result<u64> {
     use std::os::unix::fs::MetadataExt;
-    path.metadata().map(|m| m.dev())
+    Ok(try!(path.metadata().map(|m| m.dev())))
 }
 
 const VC_DIRS: [(&'static str, Vc); 2] = [
@@ -142,8 +249,8 @@ const VC_DIRS: [(&'static str, Vc); 2] = [
     (".hg", Vc::Hg),
 ];
 
-fn test_vc_dir(path: &path::Path) -> Result<Option<(Vc, path::PathBuf)>> {
-    for &(ref dirname, vc) in &VC_DIRS {
+fn test_vc_dir(path: &path::Path, plugins: Option<&mut PluginLoader>) -> Result<Option<(Vc, path::PathBuf)>> {
+    for &(ref dirname, ref vc) in &VC_DIRS {
         let child = path.join(dirname);
         use std::io::ErrorKind::*;
         let meta = match child.metadata() {
@@ -152,20 +259,24 @@ fn test_vc_dir(path: &path::Path) -> Result<Option<(Vc, path::PathBuf)>> {
                 NotFound | PermissionDenied => true,
                 _ => false,
             } => continue,
-            Err(e) => return Err(e),
+            Err(e) => return Err(e.into()),
         };
         if meta.is_dir() {
-            return Ok(Some((vc, child)));
+            return Ok(Some((vc.clone(), child)));
         }
     }
-    Ok(None)
+    if let Some(r) = try!(plugins.map(|p| p.test_vc_dir(path)).unwrap_or(Ok(None))) {
+        Ok(Some((Vc::Plugin(r), path.to_path_buf())))
+    } else {
+        Ok(None)
+    }
 }
 
-fn find_vc_root() -> Result<Option<(Vc, path::PathBuf, path::PathBuf)>> {
+fn find_vc_root(mut plugins: Option<&mut PluginLoader>) -> Result<Option<(Vc, path::PathBuf, path::PathBuf)>> {
     let mut cur = try!(env::current_dir());
     let top_dev = try!(path_dev(cur.as_path()));
     loop {
-        if let Some((vc, vc_dir)) = try!(test_vc_dir(cur.as_path())) {
+        if let Some((vc, vc_dir)) = try!(test_vc_dir(cur.as_path(), plugins.as_mut().map(|p| &mut **p))) {
             return Ok(Some((vc, vc_dir, cur)));
         }
         cur = match cur.parent() {
@@ -176,17 +287,19 @@ fn find_vc_root() -> Result<Option<(Vc, path::PathBuf, path::PathBuf)>> {
     Ok(None)
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 enum Vc {
     Git,
     Hg,
+    Plugin(plugin::VcStatusResponse),
 }
 
 impl Vc {
-    fn as_name(&self) -> &'static str {
+    fn as_name(&self) -> &str {
         match self {
             &Vc::Git => "git",
             &Vc::Hg => "hg",
+            &Vc::Plugin(ref s) => s.vc_name.as_str(),
         }
     }
 }
@@ -198,13 +311,12 @@ struct VcLoc {
 }
 
 fn from_utf8(v: Vec<u8>) -> Result<String> {
-    String::from_utf8(v)
-        .map_err(|e| Error::new(ErrorKind::Other, e))
+    Ok(try!(String::from_utf8(v)))
 }
 
 impl VcLoc {
-    fn from_current_dir() -> Result<Option<VcLoc>> {
-        find_vc_root().map(|o| o.map(
+    fn from_current_dir(plugins: Option<&mut PluginLoader>) -> Result<Option<VcLoc>> {
+        find_vc_root(plugins).map(|o| o.map(
             |(vc, vc_dir, work_dir)| VcLoc {vc: vc, vc_dir: vc_dir, work_dir: work_dir}))
     }
 
@@ -221,6 +333,7 @@ impl VcLoc {
                 cmd.arg("-R").arg(self.work_dir.as_path());
                 cmd
             },
+            &Vc::Plugin(_) => unreachable!(),
         };
         cmd.stdin(process::Stdio::null());
         cmd.stderr(process::Stdio::inherit());
@@ -259,6 +372,7 @@ impl VcLoc {
         match &self.vc {
             &Vc::Git => self.run_git_status(),
             &Vc::Hg => self.run_hg_status(),
+            &Vc::Plugin(ref s) => Ok((s.file_counts.clone(), s.file_counts_truncated)),
         }
     }
 
@@ -321,13 +435,14 @@ impl VcLoc {
         match &self.vc {
             &Vc::Git => self.get_git_branch(),
             &Vc::Hg => self.get_hg_branch(),
+            &Vc::Plugin(ref s) => Ok(s.branch.clone()),
         }
     }
 }
 
-fn vc_status() -> Result<String> {
+fn vc_status(plugins: Option<&mut PluginLoader>) -> Result<String> {
     use std::fmt::Write;
-    let vc_loc = match try!(VcLoc::from_current_dir()) {
+    let vc_loc = match try!(VcLoc::from_current_dir(plugins)) {
         Some(v) => v,
         None => return Ok("".to_string()),
     };
@@ -368,7 +483,7 @@ fn colorhash(input: &[u8], allow_all: bool) -> Result<String> {
 
 fn git_head_branch() -> Result<String> {
     use std::io::Write;
-    match try!(try!(VcLoc::from_current_dir()).map_or(Ok(None), |v| v.get_git_head_branch())) {
+    match try!(try!(VcLoc::from_current_dir(None)).map_or(Ok(None), |v| v.get_git_head_branch())) {
         Some(head) => Ok(head),
         None => {
             try!(write!(stderr(), "no branch found for git HEAD\n"));
@@ -388,7 +503,8 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     Ok(())
 }
 
-fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>) -> Result<BTreeMap<&'static str, String>> {
+fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>,
+                  plugins: Option<&mut PluginLoader>) -> Result<BTreeMap<&'static str, String>> {
     let mut results = BTreeMap::new();
     if let Some((before, after)) = timers {
         let span = after - before;
@@ -396,14 +512,15 @@ fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>) -> Result<BT
     } else {
         results.insert("duration", "—".to_string());
     }
-    results.insert("vc", try!(vc_status()));
+    results.insert("vc", try!(vc_status(plugins)));
     results.insert("files", try!(file_count()));
     Ok(results)
 }
 
-fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>) -> Result<()> {
+fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>,
+              plugins: Option<&mut PluginLoader>) -> Result<()> {
     use std::io::Write;
-    let map = try!(zsh_precmd_map(timers));
+    let map = try!(zsh_precmd_map(timers, plugins));
     let mut bytes: Vec<u8> = vec![];
     for (k, v) in &map {
         bytes.extend(k.as_bytes());
@@ -412,10 +529,12 @@ fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>) -> Result<()> {
         bytes.push(0);
     }
     bytes.pop();
-    stdout().write_all(&bytes[..])
+    Ok(try!(stdout().write_all(&bytes[..])))
 }
 
 fn main() {
+    let mut plugins = PluginLoader::new();
+    plugins.load_plugins().expect("plugin failure");
     let matches = clap_app!
         (hab_utils =>
          (version: "0.1")
@@ -452,7 +571,7 @@ fn main() {
         ).get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
         if let Some(_) = m.subcommand_matches("vc_status") {
-            vc_status()
+            vc_status(Some(&mut plugins))
         } else if let Some(_) = m.subcommand_matches("file_count") {
             file_count()
         } else if let Some(m) = m.subcommand_matches("color_hash") {
@@ -469,7 +588,7 @@ fn main() {
             let after = time::Duration::new(timers[2], timers[3] as u32);
             Some((before, after))
         } else { None };
-        zsh_precmd(durations)
+        zsh_precmd(durations, Some(&mut plugins))
     } else { return }.expect("failure running subcommand")
 }
 

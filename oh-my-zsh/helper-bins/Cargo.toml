@@ -2,12 +2,26 @@
 name = "helper-bins"
 version = "0.1.0"
 authors = ["Aaron Gallagher <_@habnab.it>"]
+build = "build.rs"
+publish = false
+
+[features]
+default = ["serde_codegen"]
+nightly = ["serde_macros"]
 
 [dependencies]
+byteorder = "*"
 clap = {version = "2.5.2", features = ["unstable"]}
 sha1 = "0.1.1"
+serde = "*"
+serde_json = "*"
+serde_macros = { version = "*", optional = true }
+
 # maybe later
 # git2 = {version = "0.4.3", default-features = false}
+
+[build-dependencies]
+serde_codegen = { version = "*", optional = true }
 
 [dev-dependencies]
 fnconcat = "*"
