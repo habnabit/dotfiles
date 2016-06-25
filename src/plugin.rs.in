@@ -1,0 +1,63 @@
+#![serde(default)]
+
+use std::collections::BTreeMap;
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct InitializeRequest {
+    #[serde(skip_serializing, skip_deserializing)] _dummy: (),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct InitializeResponse {
+    pub handles_vc: bool,
+    #[serde(skip_serializing, skip_deserializing)] _dummy: (),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct VcStatusRequest {
+    pub cwd: String,
+    #[serde(skip_serializing, skip_deserializing)] _dummy: (),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct VcStatusResponse {
+    pub vc_name: String,
+    pub branch: String,
+    pub file_counts: BTreeMap<char, usize>,
+    pub file_counts_truncated: bool,
+    #[serde(skip_serializing, skip_deserializing)] _dummy: (),
+}
+
+macro_rules! trivial_converters {
+    ($e:ident, [$( $s:ident => $v:ident, )+]) => { $(
+        impl From<$s> for $e {
+            fn from(x: $s) -> $e {
+                $e::$v(x)
+            }
+        }
+    )+ };
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum PluginRequest {
+    Nothing,
+    Initialize(InitializeRequest),
+    VcStatus(VcStatusRequest),
+}
+
+trivial_converters!(PluginRequest, [
+    InitializeRequest => Initialize,
+    VcStatusRequest => VcStatus,
+]);
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum PluginResponse {
+    Nothing,
+    Initialize(InitializeResponse),
+    VcStatus(VcStatusResponse),
+}
+
+trivial_converters!(PluginResponse, [
+    InitializeResponse => Initialize,
+    VcStatusResponse => VcStatus,
+]);
