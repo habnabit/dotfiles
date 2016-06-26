@@ -5,7 +5,7 @@ extern crate byteorder;
 extern crate serde;
 extern crate serde_json;
 
-use std::io::{BufRead, Write, self};
+use std::io::{ErrorKind, BufRead, Write, self};
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 use serde::{Serialize, Deserialize};
@@ -16,11 +16,15 @@ pub mod plugin;
 use self::error::PromptResult as Result;
 use self::plugin::{PluginRequest, PluginResponse};
 
-fn read_string32(reader: &mut BufRead) -> io::Result<Vec<u8>> {
-    let len = try!(reader.read_u32::<LittleEndian>()) as usize;
+fn read_string32(reader: &mut BufRead) -> io::Result<Option<Vec<u8>>> {
+    let len = match reader.read_u32::<LittleEndian>() {
+        Ok(s) => s as usize,
+        Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => return Ok(None),
+        Err(e) => return Err(e),
+    };
     let mut buf = vec![0_u8; len];
     try!(reader.read_exact(&mut buf[..]));
-    Ok(buf)
+    Ok(Some(buf))
 }
 
 fn write_string32(writer: &mut Write, bytes: &[u8]) -> io::Result<()> {
@@ -49,9 +53,11 @@ impl<'a> PluginIO<'a> {
         Ok(())
     }
 
-    fn read_message<M: Deserialize>(&mut self) -> Result<M> {
-        let bytes = try!(read_string32(self.input));
-        Ok(try!(serde_json::de::from_slice(&bytes[..])))
+    fn read_message<M: Deserialize>(&mut self) -> Result<Option<M>> {
+        let bytes_opt = try!(read_string32(self.input));
+        bytes_opt.map(|b| serde_json::de::from_slice(&b[..]))
+            .unwrap_or(Ok(None))
+            .map_err(Into::into)
     }
 }
 
@@ -62,13 +68,16 @@ impl<'a> PluginClient<'a> {
         PluginClient(PluginIO::new(r, w))
     }
 
-    pub fn handle_request<F>(&mut self, f: &mut F) -> Result<()>
+    pub fn handle_request<F>(&mut self, f: &mut F) -> Result<bool>
         where F: FnMut(PluginRequest) -> Result<PluginResponse>,
     {
-        let request: PluginRequest = try!(self.0.read_message());
+        let request: PluginRequest = match try!(self.0.read_message()) {
+            Some(r) => r,
+            None => return Ok(false),
+        };
         let response = try!(f(request));
         try!(self.0.write_message(&response));
-        Ok(())
+        Ok(true)
     }
 
     pub fn serve_forever<F>(&mut self, mut f: F)
@@ -76,9 +85,10 @@ impl<'a> PluginClient<'a> {
     {
         loop {
             match self.handle_request(&mut f) {
-                Ok(()) => (),
+                Ok(true) => (),
+                Ok(false) => break,
                 Err(e) => {
-                    println!("error serving plugin request: {:?}", e);
+                    write!(io::stderr(), "error serving plugin request: {:?}\n", e).unwrap();
                     std::process::exit(2);
                 }
             }
@@ -93,7 +103,7 @@ impl<'a> PluginServer<'a> {
         PluginServer(PluginIO::new(r, w))
     }
 
-    pub fn issue_request(&mut self, req: &PluginRequest) -> Result<PluginResponse> {
+    pub fn issue_request(&mut self, req: &PluginRequest) -> Result<Option<PluginResponse>> {
         try!(self.0.write_message(req));
         self.0.read_message()
     }
