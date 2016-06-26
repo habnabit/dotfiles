@@ -53,6 +53,7 @@ struct Plugin {
     stdin: process::ChildStdin,
     stdout: BufReader<process::ChildStdout>,
     meta: plugin::InitializeResponse,
+    running: bool,
 }
 
 impl Plugin {
@@ -60,6 +61,7 @@ impl Plugin {
         let process = process::Command::new(&path)
             .stdin(process::Stdio::piped())
             .stdout(process::Stdio::piped())
+            .stderr(process::Stdio::inherit())
             .spawn();
         let mut process = try!(process);
         let name = path.to_string_lossy().into_owned();
@@ -69,19 +71,42 @@ impl Plugin {
             stdout: BufReader::new(process.stdout.take().unwrap()),
             process: process,
             meta: Default::default(),
+            running: true,
         })
     }
 
-    fn issue_request(&mut self, req: &plugin::PluginRequest) -> Result<plugin::PluginResponse> {
-        Ok(try!(PluginServer::new(&mut self.stdout, &mut self.stdin).issue_request(req)))
+    fn reap(&mut self) {
+        ((move || {
+            self.running = false;
+            try!(self.process.kill());
+            try!(self.process.wait());
+            Ok(())
+        })() as Result<()>).expect("couldn't reap child")
+    }
+
+    fn issue_request(&mut self, req: &plugin::PluginRequest) -> Result<Option<plugin::PluginResponse>> {
+        if !self.running {
+            return Ok(None)
+        }
+        let resp = try!(PluginServer::new(&mut self.stdout, &mut self.stdin).issue_request(req));
+        if resp.is_none() {
+            self.reap()
+        }
+        Ok(resp)
     }
 
     fn initialize(&mut self) -> Result<()> {
         let req = plugin::InitializeRequest::default();
-        if let plugin::PluginResponse::Initialize(resp) = try!(self.issue_request(&req.into())) {
+        if let Some(plugin::PluginResponse::Initialize(resp)) = try!(self.issue_request(&req.into())) {
             mem::replace(&mut self.meta, resp);
         }
         Ok(())
+    }
+}
+
+impl Drop for Plugin {
+    fn drop(&mut self) {
+        self.reap()
     }
 }
 
@@ -140,7 +165,7 @@ impl PluginLoader {
             if !plugin.meta.handles_vc {
                 continue
             }
-            if let plugin::PluginResponse::VcStatus(resp) = try!(plugin.issue_request(&req)) {
+            if let Some(plugin::PluginResponse::VcStatus(resp)) = try!(plugin.issue_request(&req)) {
                 return Ok(Some(resp));
             }
         }
