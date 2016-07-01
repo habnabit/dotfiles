@@ -1,5 +1,7 @@
 #![cfg_attr(feature = "serde_macros", feature(custom_derive, plugin))]
 #![cfg_attr(feature = "serde_macros", plugin(serde_macros))]
+#![cfg_attr(test, feature(plugin))]
+#![cfg_attr(test, plugin(fnconcat))]
 
 extern crate byteorder;
 extern crate serde;
@@ -10,6 +12,7 @@ use std::io::{ErrorKind, BufRead, Write, self};
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 use serde::{Serialize, Deserialize};
 
+pub mod duration;
 pub mod error;
 pub mod plugin;
 
