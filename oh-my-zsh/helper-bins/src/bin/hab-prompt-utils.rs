@@ -3,6 +3,7 @@ extern crate helper_bins;
 extern crate sha1;
 
 use std::collections::BTreeMap;
+use std::io::ErrorKind::{NotFound, PermissionDenied};
 use std::io::{BufRead, BufReader, stdout, stderr};
 use std::{env, fmt, fs, mem, path, process, time};
 
@@ -145,7 +146,11 @@ impl PluginLoader {
             Some(d) => d,
             None => return Ok(()),
         };
-        for file in try!(plugin_dir.read_dir()) {
+        for file in match plugin_dir.read_dir() {
+            Ok(r) => r,
+            Err(ref e) if e.kind() == NotFound => return Ok(()),
+            Err(e) => return Err(e.into()),
+        } {
             let file = try!(file).path();
             self.plugins.push(try!(Plugin::new(file)));
         }
@@ -275,17 +280,13 @@ const VC_DIRS: [(&'static str, Vc); 2] = [
 fn test_vc_dir(path: &path::Path, plugins: Option<&mut PluginLoader>) -> Result<Option<(Vc, path::PathBuf)>> {
     for &(ref dirname, ref vc) in &VC_DIRS {
         let child = path.join(dirname);
-        use std::io::ErrorKind::*;
-        let meta = match child.metadata() {
-            Ok(m) => m,
+        match child.metadata() {
+            Ok(_) => return Ok(Some((vc.clone(), child))),
             Err(ref e) if match e.kind() {
                 NotFound | PermissionDenied => true,
                 _ => false,
             } => continue,
             Err(e) => return Err(e.into()),
-        };
-        if meta.is_dir() {
-            return Ok(Some((vc.clone(), child)));
         }
     }
     if let Some(r) = try!(plugins.map(|p| p.test_vc_dir(path)).unwrap_or(Ok(None))) {
