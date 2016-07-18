@@ -1,5 +1,12 @@
 # -*- sh -*-
 
+if [[ $TERM == "dumb" ]]; then
+    zmodload zsh/zle
+    unset zle_bracketed_paste
+    PS1="$ "
+    return 0
+fi
+
 # Path to your oh-my-zsh configuration.
 export ZSH=$HOME/.dotfiles/oh-my-zsh
 
@@ -28,11 +35,7 @@ ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
 # Example format: plugins=(rails git textmate ruby lighthouse)
 plugins=(zsh-syntax-highlighting passacre)
 
-if [[ $TERM == "dumb" ]]; then
-    PS1="$ "
-else
-    source $ZSH/oh-my-zsh.sh
-fi
+source $ZSH/oh-my-zsh.sh
 
 # Customize to your needs...
 
