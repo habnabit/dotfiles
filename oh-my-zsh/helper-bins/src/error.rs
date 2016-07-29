@@ -8,6 +8,7 @@ pub enum PromptErrors {
     Io(io::Error),
     Utf8(FromUtf8Error),
     Json(serde_json::Error),
+    InvalidSshProxy(String),
 }
 
 impl error::Error for PromptErrors {
@@ -17,6 +18,7 @@ impl error::Error for PromptErrors {
             &Io(_) => "io error",
             &Utf8(_) => "utf8 decode error",
             &Json(_) => "json error",
+            &InvalidSshProxy(_) => "invalid ssh-proxy host",
         }
     }
 }
