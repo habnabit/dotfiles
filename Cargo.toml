@@ -12,6 +12,8 @@ nightly = ["serde_macros"]
 [dependencies]
 byteorder = "*"
 clap = {version = "2.5.2", features = ["unstable"]}
+lazy_static = "0.2.1"
+regex = "0.1.73"
 sha1 = "0.1.1"
 serde = "*"
 serde_json = "*"

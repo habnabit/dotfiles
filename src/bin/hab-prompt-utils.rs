@@ -1,14 +1,17 @@
 #[macro_use] extern crate clap;
 extern crate helper_bins;
+#[macro_use] extern crate lazy_static;
+extern crate regex;
 extern crate sha1;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::ErrorKind::{NotFound, PermissionDenied};
 use std::io::{BufRead, BufReader, stdout, stderr};
 use std::{env, fmt, fs, mem, path, process, time};
 
 use helper_bins::duration::PrettyDuration;
-use helper_bins::error::PromptResult as Result;
+use helper_bins::error::{PromptErrors, PromptResult as Result};
 use helper_bins::{PluginServer, plugin};
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
@@ -129,10 +132,9 @@ impl PluginLoader {
     }
 
     fn plugin_dir(&self) -> Option<path::PathBuf> {
-        match env::var("HAB_PROMPT_PLUGIN_DIR") {
-            Ok(d) => return Some(d.into()),
-            _ => (),
-        };
+        if let Ok(d) = env::var("HAB_PROMPT_PLUGIN_DIR") {
+            return Some(d.into());
+        }
         let mut plugin_dir = match env::home_dir() {
             Some(h) => h,
             None => return None,
@@ -556,6 +558,73 @@ fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>,
     Ok(try!(stdout().write_all(&bytes[..])))
 }
 
+enum SshProxyTarget<'a> {
+    Jail(&'a str),
+    Via(&'a str),
+}
+
+impl<'a> SshProxyTarget<'a> {
+    fn with_ssh_args(self, host: &str, port: &str, mut cmd: process::Command) -> process::Command {
+        use SshProxyTarget::*;
+        match self {
+            Jail(jail) => {
+                cmd
+                    .arg(host)
+                    .arg("sudo").arg("jexec").arg(jail)
+                    .arg("sshd").arg("-i");
+            },
+            Via(target) => {
+                cmd
+                    .arg("-W").arg(format!("{}:{}", target, port))
+                    .arg(host);
+            },
+        }
+        cmd
+    }
+}
+
+lazy_static! {
+    static ref SSH_PROXY_PATTERN: regex::Regex = regex::Regex::new(r"(?ix)
+        \A(?:(?P<jail>[a-zA-Z0-9_-]+) \._jails
+            |(?P<via> [a-zA-Z0-9.-]+) \._via
+        )\.(?P<host>  [a-zA-Z0-9._-]+)\z
+    ").unwrap();
+}
+
+fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
+    let matches = match SSH_PROXY_PATTERN.captures(host) {
+        Some(m) => m,
+        None => return Err(PromptErrors::InvalidSshProxy(host.to_owned())),
+    };
+    let host = matches.name("host").unwrap();
+    let target = if let Some(j) = matches.name("jail") { SshProxyTarget::Jail(j) }
+    else if let Some(v) = matches.name("via") { SshProxyTarget::Via(v) }
+    else { unreachable!() };
+    Ok((target, host))
+}
+
+fn ssh_proxy_command(host: &str, port: &str, args: Option<clap::OsValues>) -> Result<process::Command> {
+    let (target, host) = try!(parse_ssh_proxy_host(host));
+    let ssh_cmd = if let Ok(ssh) = env::var("SSH_PROXY_SSH") {
+        Cow::Owned(ssh)
+    } else {
+        Cow::Borrowed("ssh")
+    };
+    let mut cmd = process::Command::new(&*ssh_cmd);
+    cmd.arg("-enone");
+    if let Some(args) = args {
+        for arg in args {
+            cmd.arg(arg);
+        }
+    }
+    if let Ok(extra) = env::var("SSH_PROXY_EXTRA_ARGS") {
+        for arg in extra.split_whitespace() {
+            cmd.arg(arg);
+        }
+    }
+    Ok(target.with_ssh_args(host, port, cmd))
+}
+
 fn main() {
     let mut plugins = PluginLoader::new();
     plugins.load_plugins().expect("plugin failure");
@@ -581,7 +650,7 @@ fn main() {
            (aliases: &["color-hash"])
            (about: "Hash a value into a 256-color number")
            (@arg STRING: +required)
-           (@arg allow_all_colors: -a --allow-all-colors "Don't filter out hard-to-read colors")
+           (@arg allow_all_colors: -a --allow_all_colors "Don't filter out hard-to-read colors")
           )
           (@subcommand git_head_branch =>
            (aliases: &["git-head-branch"])
@@ -591,6 +660,14 @@ fn main() {
          (@subcommand precmd =>
           (about: "Do everything the zsh precmd would need")
           (@arg TIMERS: ...)
+         )
+         (@subcommand ssh_proxy =>
+          (aliases: &["ssh-proxy"])
+          (about: "Proxy to a remote sshd in a standard-ish way")
+          (@arg dry_run: -n --dry_run "Don't actually exec ssh")
+          (@arg HOST: +required)
+          (@arg PORT: +required)
+          (@arg SSHARGS: ...)
          )
         ).get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
@@ -613,5 +690,19 @@ fn main() {
             Some((before, after))
         } else { None };
         zsh_precmd(durations, Some(&mut plugins))
+    } else if let Some(m) = matches.subcommand_matches("ssh_proxy") {
+        let host = m.value_of("HOST").unwrap();
+        let port = m.value_of("PORT").unwrap();
+        let args = m.values_of_os("SSHARGS");
+        ssh_proxy_command(host, port, args).and_then(|mut c| {
+            if m.is_present("dry_run") {
+                use std::io::Write;
+                let stdout_ = stdout();
+                try!(write!(stdout_.lock(), "would run: {:?}\n", c));
+            } else {
+                try!(c.status().and_then(|e| process::exit(e.code().unwrap_or(1))));
+            }
+            Ok(())
+        })
     } else { return }.expect("failure running subcommand")
 }
