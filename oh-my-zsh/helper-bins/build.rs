@@ -8,8 +8,8 @@ mod inner {
     pub fn main() {
         let out_dir = env::var_os("OUT_DIR").unwrap();
 
-        let src = Path::new("src/plugin.rs.in");
-        let dst = Path::new(&out_dir).join("plugin.rs");
+        let src = Path::new("src/plugin_types.rs.in");
+        let dst = Path::new(&out_dir).join("plugin_types.rs");
 
         serde_codegen::expand(&src, &dst).unwrap();
     }
