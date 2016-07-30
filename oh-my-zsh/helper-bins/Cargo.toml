@@ -18,6 +18,7 @@ sha1 = "0.1.1"
 serde = "*"
 serde_json = "*"
 serde_macros = { version = "*", optional = true }
+tempfile = "2.1.4"
 
 # maybe later
 # git2 = {version = "0.4.3", default-features = false}

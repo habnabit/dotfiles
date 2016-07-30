@@ -1,0 +1,10 @@
+exists   compy-specific.sh
+install  emacs.d
+exists   emacs.d/compy-specific/init.el
+install  emacs.d/emacs
+install  gitconfig
+install  gitignore_global
+install  passacre.yaml
+assemble ssh_config .ssh/config
+assemble tmux.conf
+install  zshrc

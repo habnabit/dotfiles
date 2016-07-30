@@ -12,12 +12,15 @@ extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate sha1;
+extern crate tempfile;
 
 mod plugin_types;
+mod term;
 pub mod colors;
 pub mod directories;
 pub mod durations;
 pub mod errors;
+pub mod installer;
 pub mod plugins;
 pub mod ssh_proxy;
 pub mod utils;

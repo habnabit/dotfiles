@@ -1,2 +1,4 @@
 compy-specific*
 old
+*.d/*
+!*.d/???N-*
