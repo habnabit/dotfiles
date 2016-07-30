@@ -9,6 +9,7 @@ pub enum PromptErrors {
     Utf8(FromUtf8Error),
     Json(serde_json::Error),
     InvalidSshProxy(String),
+    InstallationError(String),
 }
 
 impl error::Error for PromptErrors {
@@ -19,6 +20,7 @@ impl error::Error for PromptErrors {
             &Utf8(_) => "utf8 decode error",
             &Json(_) => "json error",
             &InvalidSshProxy(_) => "invalid ssh-proxy host",
+            &InstallationError(_) => "couldn't install a file",
         }
     }
 }

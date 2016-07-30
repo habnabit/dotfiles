@@ -3,12 +3,13 @@ extern crate helper_bins;
 
 use std::collections::BTreeMap;
 use std::io::stdout;
-use std::{process, time};
+use std::{path, process, time};
 
 use helper_bins::colors::colorhash;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
 use helper_bins::errors::{PromptResult as Result};
+use helper_bins::installer::install_from_manifest;
 use helper_bins::plugins::PluginLoader;
 use helper_bins::ssh_proxy::ssh_proxy_command;
 use helper_bins::vc::{git_head_branch, vc_status};
@@ -97,6 +98,11 @@ fn main() {
           (@arg PORT: +required)
           (@arg SSHARGS: ...)
          )
+         (@subcommand install =>
+          (about: "Install files according to a manifest")
+          (@arg MANIFEST: +required)
+          (@arg TARGET:)
+         )
         ).get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
         if let Some(_) = m.subcommand_matches("vc_status") {
@@ -133,5 +139,9 @@ fn main() {
             }
             Ok(())
         })
+    } else if let Some(m) = matches.subcommand_matches("install") {
+        let manifest = path::Path::new(m.value_of("MANIFEST").unwrap());
+        let target_dir = path::Path::new(m.value_of("TARGET").unwrap());
+        install_from_manifest(manifest, target_dir)
     } else { return }.expect("failure running subcommand")
 }
