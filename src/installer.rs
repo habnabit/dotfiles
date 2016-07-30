@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::OsString;
 use std::io::ErrorKind::NotFound;
 use std::os::unix::fs::symlink;
@@ -40,26 +41,39 @@ fn action_install(source: &path::Path, target: &path::Path) -> Result<()> {
     Ok(())
 }
 
-fn assemble_files(source: &path::Path, target: &path::Path) -> Result<()> {
+fn find_files_to_assemble(source: &path::Path) -> Result<Vec<path::PathBuf>> {
     let files = try!(fs::read_dir(source))
-        .filter_map(|r| match r {
-            Err(e) => Some(Err(e)),
-            Ok(e) => {
-                let p = e.path();
-                if match p.file_name().and_then(|f| f.to_str()) {
-                    Some(f) if !f.starts_with("_") => true,
-                    _ => false,
-                } {Some(Ok(p))} else {None}
-            },
-        })
+        .map(|r| r.map(|e| (None, None, e.path())))
         .collect();
-    let mut files: Vec<path::PathBuf> = try!(files);
-    files.sort_by_key(|p| {
-        p.file_name()
-            .and_then(|f| f.to_str())
-            .and_then(|s| s.split('-').next())
-            .and_then(|i| i.parse::<u64>().ok())
-    });
+    let mut files: Vec<_> = try!(files);
+    for &mut (ref mut number, ref mut letter, ref mut path) in &mut files {
+        match path.file_name().and_then(|f| f.to_str()) {
+            Some(f) => {
+                if f.starts_with("_") {
+                    continue
+                }
+                if let Some(mut it) = f.split('-')
+                    .next()
+                    .map(|s| s.chars())
+                {
+                    *letter = it.next_back();
+                    *number = it.as_str().parse::<u64>().ok();
+                }
+            },
+            _ => (),
+        }
+    }
+    files.retain(|&(ref n, ref l, _)| n.is_some() && l.is_some());
+    files.sort();
+    let mut seen = HashSet::with_capacity(files.len());
+    let files = files.into_iter()
+        .filter_map(|(n, _, p)| if seen.insert(n) {Some(p)} else {None})
+        .collect();
+    Ok(files)
+}
+
+fn assemble_files(source: &path::Path, target: &path::Path) -> Result<()> {
+    let files = try!(find_files_to_assemble(source));
     let out = NamedTempFileOptions::new()
         .prefix("_tmp")
         .create_in(target.parent().unwrap_or_else(|| unimplemented!()));
