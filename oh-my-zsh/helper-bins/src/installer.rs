@@ -110,6 +110,8 @@ const ACTIONS: [(&'static str, fn(&path::Path, &path::Path) -> Result<()>); 3] =
 
 pub fn install_from_manifest(manifest: &path::Path, target_dir: &path::Path) -> Result<()> {
     let manifest_dir = manifest.parent().unwrap_or_else(|| unimplemented!());
+    let manifest_dir = try!(manifest_dir.canonicalize());
+    let target_dir = try!(target_dir.canonicalize());
     let file = io::BufReader::new(
         try!(fs::OpenOptions::new().read(true).open(manifest)));
     for line in io::BufRead::lines(file) {
