@@ -15,9 +15,6 @@ export ZSH=$HOME/.dotfiles/oh-my-zsh
 export ZSH_THEME="hab"
 
 local helpers_dir=$(printf "${ZSH}/helper-bins/bin-%s-%s" $(uname -sm))
-if [[ -d ${helpers_dir}-alt ]]; then
-   local helpers_dir="${helpers_dir}-alt"
-fi
 export PATH="${PATH}:${helpers_dir}"
 
 # Set to this to use case-sensitive completion
