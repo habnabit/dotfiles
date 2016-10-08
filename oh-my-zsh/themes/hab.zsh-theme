@@ -28,6 +28,7 @@ function vc_prompt_info () {
 typeset -A jobtypes
 jobtypes=(running r suspended s done d)
 function prompt_hab_precmd () {
+  promptinfo=()
   promptinfo=("${(0)$(hab-prompt-utils precmd ${timer} ${epochtime})}")
   timer=()
   local jobs=''
