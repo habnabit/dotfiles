@@ -1,13 +1,11 @@
 use std::string::FromUtf8Error;
 use std::{error, fmt, io};
 
-use serde_json;
-
 #[derive(Debug)]
 pub enum PromptErrors {
     Io(io::Error),
     Utf8(FromUtf8Error),
-    Json(serde_json::Error),
+    Capnp,
     InvalidSshProxy(String),
     InstallationError(String),
 }
@@ -18,7 +16,7 @@ impl error::Error for PromptErrors {
         match self {
             &Io(_) => "io error",
             &Utf8(_) => "utf8 decode error",
-            &Json(_) => "json error",
+            &Capnp => "capnp error",
             &InvalidSshProxy(_) => "invalid ssh-proxy host",
             &InstallationError(_) => "couldn't install a file",
         }
@@ -37,15 +35,15 @@ impl From<io::Error> for PromptErrors {
     }
 }
 
-impl From<serde_json::Error> for PromptErrors {
-    fn from(e: serde_json::Error) -> PromptErrors {
-        PromptErrors::Json(e)
-    }
-}
-
 impl From<FromUtf8Error> for PromptErrors {
     fn from(e: FromUtf8Error) -> PromptErrors {
         PromptErrors::Utf8(e)
+    }
+}
+
+impl From<::capnp::Error> for PromptErrors {
+    fn from(_: ::capnp::Error) -> PromptErrors {
+        PromptErrors::Capnp
     }
 }
 
