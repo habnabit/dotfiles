@@ -6,25 +6,27 @@ build = "build.rs"
 publish = false
 
 [features]
-default = ["serde_codegen"]
-nightly = ["serde_macros"]
 
 [dependencies]
-byteorder = "*"
+capnp = "0.8"
+capnp-rpc = "0.8"
 clap = {version = "2.5.2", features = ["unstable"]}
+futures = "*"
 lazy_static = "0.2.1"
 regex = "0.1.73"
 sha1 = "0.1.1"
-serde = "*"
-serde_json = "*"
-serde_macros = { version = "*", optional = true }
 tempfile = "2.1.4"
+tokio-core = "*"
+tokio-process = "*"
 
 # maybe later
 # git2 = {version = "0.4.3", default-features = false}
 
+[dependencies.tokio-more]
+git = "https://github.com/tokio-rs/tokio-more"
+
 [build-dependencies]
-serde_codegen = { version = "*", optional = true }
+capnpc = "*"
 
 [dev-dependencies]
 fnconcat = "*"

@@ -1,20 +1,22 @@
-#![cfg_attr(feature = "serde_macros", feature(custom_derive, plugin))]
-#![cfg_attr(feature = "serde_macros", plugin(serde_macros))]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 
-extern crate byteorder;
-#[macro_use]
-extern crate clap;
-#[macro_use]
-extern crate lazy_static;
+extern crate capnp;
+#[macro_use] extern crate capnp_rpc;
+#[macro_use] extern crate clap;
+#[macro_use] extern crate futures;
+#[macro_use] extern crate lazy_static;
 extern crate regex;
-extern crate serde;
-extern crate serde_json;
 extern crate sha1;
 extern crate tempfile;
+extern crate tokio_core;
+extern crate tokio_more;
+extern crate tokio_process;
 
-mod plugin_types;
+pub mod plugins_capnp {
+    include!(concat!(env!("OUT_DIR"), "/plugins_capnp.rs"));
+}
+
 mod term;
 pub mod colors;
 pub mod directories;

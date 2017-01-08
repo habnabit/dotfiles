@@ -1,25 +1,5 @@
-#[cfg(not(feature = "serde_macros"))]
-mod inner {
-    extern crate serde_codegen;
-
-    use std::env;
-    use std::path::Path;
-
-    pub fn main() {
-        let out_dir = env::var_os("OUT_DIR").unwrap();
-
-        let src = Path::new("src/plugin_types.rs.in");
-        let dst = Path::new(&out_dir).join("plugin_types.rs");
-
-        serde_codegen::expand(&src, &dst).unwrap();
-    }
-}
-
-#[cfg(feature = "serde_macros")]
-mod inner {
-    pub fn main() {}
-}
+extern crate capnpc;
 
 fn main() {
-    inner::main();
+    ::capnpc::CompilerCommand::new().file("plugins.capnp").run().unwrap();
 }
