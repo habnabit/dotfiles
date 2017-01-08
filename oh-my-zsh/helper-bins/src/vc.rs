@@ -163,32 +163,32 @@ const VC_DIRS: [(&'static str, Vc); 2] = [
     (".hg", Vc::Hg),
 ];
 
-fn vc_root_step<'a>(loader: &'a mut PluginLoader, top_dev: u64, cur: path::PathBuf) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors> + 'a>
+fn vc_root_step(loader: PluginLoader, top_dev: u64, cur: path::PathBuf) -> Box<Future<Item=(PluginLoader, Option<VcStatus>), Error=PromptErrors>>
 {
     enum Step {
-        Done(Result<Option<VcStatus>>),
-        TryNext(path::PathBuf),
+        Done(Result<(PluginLoader, Option<VcStatus>)>),
+        TryNext(PluginLoader, path::PathBuf),
     }
-    let ret = loader.test_vc_dir(&cur).map(move |o| {
+    let ret = loader.test_vc_dir(&cur).map(move |(loader, o)| {
         if let Some(s) = o {
-            Step::Done(Ok(Some(s)))
+            Step::Done(Ok((loader, Some(s))))
         } else if let Some(p) = cur.parent() {
             match path_dev(p) {
-                Ok(d) if d == top_dev => Step::TryNext(p.into()),
-                Ok(_) => Step::Done(Ok(None)),
+                Ok(d) if d == top_dev => Step::TryNext(loader, p.into()),
+                Ok(_) => Step::Done(Ok((loader, None))),
                 Err(e) => Step::Done(Err(e.into())),
             }
         } else {
-            Step::Done(Ok(None))
+            Step::Done(Ok((loader, None)))
         }
     }).and_then(move |s| match s {
         Step::Done(r) => Box::new(future::done(r)),
-        Step::TryNext(p) => vc_root_step(loader, top_dev, p),
+        Step::TryNext(loader, p) => vc_root_step(loader, top_dev, p),
     });
     Box::new(ret)
 }
 
-fn find_vc_root<'a>(loader: &'a mut PluginLoader) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors> + 'a>
+fn find_vc_root(loader: PluginLoader) -> Box<Future<Item=(PluginLoader, Option<VcStatus>), Error=PromptErrors>>
 {
     let (cwd, top_dev) = match env::current_dir() {
         Ok(cwd) => match path_dev(&cwd) {
@@ -348,11 +348,11 @@ impl VcLoc {
     }
 }
 
-pub fn vc_status<'a>(loader: &'a mut PluginLoader) -> Box<Future<Item=String, Error=PromptErrors> + 'a> {
-    let ret = find_vc_root(loader).map(|o| {
+pub fn vc_status(loader: PluginLoader) -> Box<Future<Item=(PluginLoader, String), Error=PromptErrors>> {
+    let ret = find_vc_root(loader).map(|(loader, o)| {
         let status = match o {
             Some(v) => v,
-            None => return "".into(),
+            None => return (loader, "".into()),
         };
         use std::fmt::Write;
         let mut ret = String::new();
@@ -368,7 +368,7 @@ pub fn vc_status<'a>(loader: &'a mut PluginLoader) -> Box<Future<Item=String, Er
         if !counts.is_empty() {
             write!(ret, ": {}", counts).unwrap();
         }
-        ret
+        (loader, ret)
     });
     Box::new(ret)
 }
