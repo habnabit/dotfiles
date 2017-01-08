@@ -25,6 +25,9 @@ tokio-process = "*"
 [dependencies.tokio-more]
 git = "https://github.com/tokio-rs/tokio-more"
 
+[dependencies.tokio-service]
+git = "https://github.com/tokio-rs/tokio-service"
+
 [build-dependencies]
 capnpc = "*"
 

@@ -191,7 +191,7 @@ fn extract_plugins(resp: &::capnp::capability::Response<plugin_process::initiali
         .map_err(Into::into)
 }
 
-fn load_plugin<'a>(handle: Handle, path: &path::Path) -> Box<Future<Item=Vec<OwnedMessage<plugin::Owned>>, Error=PromptErrors>> {
+fn load_plugin(handle: Handle, path: &path::Path) -> Box<Future<Item=Vec<OwnedMessage<plugin::Owned>>, Error=PromptErrors>> {
     let child = process::Command::new(path)
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())
@@ -216,6 +216,14 @@ fn load_plugin<'a>(handle: Handle, path: &path::Path) -> Box<Future<Item=Vec<Own
     Box::new(ret)
 }
 
+fn vc_plugin(p: &OwnedMessage<plugin::Owned>) -> Option<plugin::version_control::Reader> {
+    use super::plugins_capnp::plugin::Which::*;
+    match p.get_root_as_reader().which() {
+        Ok(VersionControl(p)) => Some(p),
+        _ => None,
+    }
+}
+
 pub struct VcStatus {
     pub vc_name: String,
     pub results: OwnedMessage<version_control_plugin::status_results::Owned>,
@@ -232,6 +240,10 @@ impl PluginLoader {
         }
     }
 
+    pub fn loaded(handle: Handle) -> Box<Future<Item=Self, Error=PromptErrors>> {
+        Self::new().load_plugins(handle)
+    }
+
     fn plugin_dir(&self) -> Option<path::PathBuf> {
         if let Ok(d) = env::var("HAB_PROMPT_PLUGIN_DIR") {
             return Some(d.into());
@@ -244,14 +256,14 @@ impl PluginLoader {
         Some(plugin_dir)
     }
 
-    pub fn load_plugins<'a>(&'a mut self, handle: Handle) -> Box<Future<Item=(), Error=PromptErrors> + 'a> {
+    pub fn load_plugins(mut self, handle: Handle) -> Box<Future<Item=Self, Error=PromptErrors>> {
         let plugin_dir = match self.plugin_dir() {
             Some(d) => d,
-            None => return Box::new(future::ok(())),
+            None => return Box::new(future::ok(self)),
         };
         let futures = match plugin_dir.read_dir() {
             Ok(r) => r,
-            Err(ref e) if e.kind() == NotFound => return Box::new(future::ok(())),
+            Err(ref e) if e.kind() == NotFound => return Box::new(future::ok(self)),
             Err(e) => return Box::new(future::err(e.into())),
         }.map(move |file| {
             let handle_ = handle.clone();
@@ -261,29 +273,19 @@ impl PluginLoader {
         });
         let ret = future::join_all(futures)
             .map(move |plugins| {
-                self.plugins.extend(plugins.into_iter().flat_map(|v| v))
+                self.plugins.extend(plugins.into_iter().flat_map(|v| v));
+                self
             });
         Box::new(ret)
     }
 
-    fn vc_plugins<'a>(&'a self) -> Box<Iterator<Item=plugin::version_control::Reader<'a>> + 'a> {
-        let ret = self.plugins.iter()
-            .filter_map(|p| {
-                use super::plugins_capnp::plugin::Which::*;
-                match p.get_root_as_reader().which() {
-                    Ok(VersionControl(p)) => Some(p),
-                    _ => None,
-                }
-            });
-        Box::new(ret)
-    }
-
-    pub fn test_vc_dir<'a>(&'a mut self, path: &path::Path) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors> + 'a>
+    pub fn test_vc_dir(self, path: &path::Path) -> Box<Future<Item=(Self, Option<VcStatus>), Error=PromptErrors>>
     {
         let path = path.to_string_lossy();
-        let futures: ::std::result::Result<Vec<_>, ::capnp::Error> = self.vc_plugins()
+        let futures: ::std::result::Result<Vec<_>, ::capnp::Error> = self.plugins.iter()
+            .filter_map(vc_plugin)
             .map(|p| {
-                let vc_name = try!(p.get_vc_name());
+                let vc_name: String = try!(p.get_vc_name()).into();
                 let mut req = try!(p.get_plugin()).status_request();
                 req.get().set_directory(&path);
                 Ok(req.send().promise.map(move |r| (r, vc_name)))
@@ -292,13 +294,12 @@ impl PluginLoader {
         let f = future::done(futures)
             .and_then(future::select_ok)
             .map(|(i, _)| i)
-            .and_then(|(r, n)| {
-                r.get().and_then(|m| {
-                    OwnedMessage::new_default(m).map(|m| Some(VcStatus {
-                        vc_name: n.into(),
-                        results: m,
-                    }))
-                })
+            .and_then(|(r, vc_name)| {
+                let results = OwnedMessage::new_default(r.get().unwrap()).unwrap();
+                Ok((self, Some(VcStatus {
+                    vc_name: vc_name,
+                    results: results,
+                })))
             })
             .map_err(Into::into);
         Box::new(f)
