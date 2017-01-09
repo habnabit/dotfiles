@@ -139,7 +139,7 @@ fn main() {
             colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
                       m.is_present("allow_all_colors"))
         } else if let Some(_) = m.subcommand_matches("git_head_branch") {
-            unimplemented!()
+            run_in_loop(git_head_branch)
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
     } else if let Some(m) = matches.subcommand_matches("precmd") {
         let timers = values_t!(m, "TIMERS", u64).unwrap_or_else(|e| e.exit());
