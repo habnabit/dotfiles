@@ -1,16 +1,20 @@
 #[macro_use] extern crate clap;
+extern crate futures;
 extern crate helper_bins;
+extern crate tokio_core;
 
 use std::collections::BTreeMap;
 use std::io::stdout;
 use std::{path, process, time};
 
+use futures::Future;
+
 use helper_bins::colors::colorhash;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
-use helper_bins::errors::{PromptResult as Result};
+use helper_bins::errors::{PromptErrors, PromptResult as Result};
 use helper_bins::installer::install_from_manifest;
-use helper_bins::plugins::PluginLoader;
+use helper_bins::plugins::{PluginLoader, TestVcDirService};
 use helper_bins::ssh_proxy::ssh_proxy_command;
 use helper_bins::vc::{git_head_branch, vc_status};
 
@@ -25,38 +29,59 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     Ok(())
 }
 
-fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>,
-                  plugins: Option<&mut PluginLoader>) -> Result<BTreeMap<&'static str, String>> {
-    let mut results = BTreeMap::new();
-    if let Some((before, after)) = timers {
-        let span = after - before;
-        results.insert("duration", format!("{}", PrettyDuration(span)));
-    } else {
-        results.insert("duration", "—".to_string());
-    }
-    results.insert("vc", try!(vc_status(plugins)));
-    results.insert("files", try!(file_count()));
-    Ok(results)
+fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> Box<Future<Item=BTreeMap<&'static str, String>, Error=PromptErrors>>
+{
+    let ret = futures::lazy(move || {
+        let mut results = BTreeMap::new();
+        if let Some((before, after)) = timers {
+            let span = after - before;
+            results.insert("duration", format!("{}", PrettyDuration(span)));
+        } else {
+            results.insert("duration", "—".to_string());
+        }
+        results.insert("files", try!(file_count()));
+        Ok(results)
+    });
+    let ret = ret
+        .join(vc_status(test_vc_dir))
+        .and_then(|(mut results, status)| {
+            results.insert("vc", status);
+            Ok(results)
+        });
+    Box::new(ret)
 }
 
-fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>,
-              plugins: Option<&mut PluginLoader>) -> Result<()> {
-    use std::io::Write;
-    let map = try!(zsh_precmd_map(timers, plugins));
-    let mut bytes: Vec<u8> = vec![];
-    for (k, v) in &map {
-        bytes.extend(k.as_bytes());
-        bytes.push(0);
-        bytes.extend(v.as_bytes());
-        bytes.push(0);
-    }
-    bytes.pop();
-    Ok(try!(stdout().write_all(&bytes[..])))
+fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> Box<Future<Item=(), Error=PromptErrors>>
+{
+    let ret = zsh_precmd_map(timers, test_vc_dir)
+        .and_then(|map| {
+            let mut bytes: Vec<u8> = vec![];
+            for (k, v) in &map {
+                bytes.extend(k.as_bytes());
+                bytes.push(0);
+                bytes.extend(v.as_bytes());
+                bytes.push(0);
+            }
+            bytes.pop();
+            tokio_core::io::write_all(stdout(), bytes)
+                .map_err(Into::into)
+        })
+        .map(|_| ());
+    Box::new(ret)
+}
+
+fn run_in_loop<F, T>(func: F) -> Result<T>
+    where F: FnOnce(TestVcDirService) -> Box<Future<Item=T, Error=PromptErrors>>
+{
+    let mut lp = try!(tokio_core::reactor::Core::new());
+    let fut = PluginLoader::new(lp.handle())
+        .load_builtin_plugins()
+        .load_plugins()
+        .and_then(|loader| func(loader.spawn()));
+    lp.run(fut)
 }
 
 fn main() {
-    let mut plugins = PluginLoader::new();
-    plugins.load_plugins().expect("plugin failure");
     let matches = clap_app!
         (hab_utils =>
          (version: "0.1")
@@ -106,7 +131,7 @@ fn main() {
         ).get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
         if let Some(_) = m.subcommand_matches("vc_status") {
-            vc_status(Some(&mut plugins))
+            run_in_loop(vc_status)
         } else if let Some(_) = m.subcommand_matches("file_count") {
             file_count()
         } else if let Some(m) = m.subcommand_matches("color_hash") {
@@ -114,7 +139,7 @@ fn main() {
             colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
                       m.is_present("allow_all_colors"))
         } else if let Some(_) = m.subcommand_matches("git_head_branch") {
-            git_head_branch()
+            unimplemented!()
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
     } else if let Some(m) = matches.subcommand_matches("precmd") {
         let timers = values_t!(m, "TIMERS", u64).unwrap_or_else(|e| e.exit());
@@ -123,7 +148,7 @@ fn main() {
             let after = time::Duration::new(timers[2], timers[3] as u32);
             Some((before, after))
         } else { None };
-        zsh_precmd(durations, Some(&mut plugins))
+        run_in_loop(move |test_vc_dir| zsh_precmd(durations, test_vc_dir))
     } else if let Some(m) = matches.subcommand_matches("ssh_proxy") {
         let host = m.value_of("HOST").unwrap();
         let port = m.value_of("PORT").unwrap();

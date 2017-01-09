@@ -1,11 +1,11 @@
-use std::string::FromUtf8Error;
+use std::str::Utf8Error;
 use std::{error, fmt, io};
 
 #[derive(Debug)]
 pub enum PromptErrors {
     Io(io::Error),
-    Utf8(FromUtf8Error),
-    Capnp,
+    Utf8(Utf8Error),
+    Boxed(Box<error::Error>),
     InvalidSshProxy(String),
     InstallationError(String),
 }
@@ -16,7 +16,7 @@ impl error::Error for PromptErrors {
         match self {
             &Io(_) => "io error",
             &Utf8(_) => "utf8 decode error",
-            &Capnp => "capnp error",
+            &Boxed(_) => "upstream error",
             &InvalidSshProxy(_) => "invalid ssh-proxy host",
             &InstallationError(_) => "couldn't install a file",
         }
@@ -35,15 +35,27 @@ impl From<io::Error> for PromptErrors {
     }
 }
 
-impl From<FromUtf8Error> for PromptErrors {
-    fn from(e: FromUtf8Error) -> PromptErrors {
+impl From<Utf8Error> for PromptErrors {
+    fn from(e: Utf8Error) -> PromptErrors {
         PromptErrors::Utf8(e)
     }
 }
 
+impl From<::std::string::FromUtf8Error> for PromptErrors {
+    fn from(e: ::std::string::FromUtf8Error) -> PromptErrors {
+        PromptErrors::Utf8(e.utf8_error())
+    }
+}
+
+impl From<::futures::Canceled> for PromptErrors {
+    fn from(e: ::futures::Canceled) -> PromptErrors {
+        PromptErrors::Boxed(Box::new(e))
+    }
+}
+
 impl From<::capnp::Error> for PromptErrors {
-    fn from(_: ::capnp::Error) -> PromptErrors {
-        PromptErrors::Capnp
+    fn from(e: ::capnp::Error) -> PromptErrors {
+        PromptErrors::Boxed(Box::new(e))
     }
 }
 
