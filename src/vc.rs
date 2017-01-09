@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::io::ErrorKind::{NotFound, PermissionDenied};
 use std::io::{BufRead, BufReader};
 use std::{env, path, process};
 
@@ -47,6 +46,10 @@ fn status_line_loop<F: 'static, T: 'static>(reader: T, updater: F) -> Box<Future
           T: BufRead,
 {
     status_inner_loop(reader, updater, vec![], BTreeMap::new())
+}
+
+fn is_directory_usable(p: &path::Path) -> bool {
+    p.metadata().is_ok()
 }
 
 #[derive(Clone)]
@@ -124,16 +127,36 @@ impl GitRequest {
         Box::new(ret)
     }
 
-    fn get_git_branch(&self) -> Box<Future<Item=String, Error=PromptErrors>> {
-        let self_ = self.clone();
+    fn fill_all(self, mut results: version_control_plugin::StatusResults) -> Box<Future<Item=(), Error=PromptErrors>> {
+        let status = self.run_git_status();
         let ret = self.get_git_head_branch()
-            .and_then(move |o| match o {
-                Some(head) => Box::new(future::ok(head)),
-                None => self_.get_git_sha(),
+            .and_then(move |o| -> Box<Future<Item=(Option<String>, String), Error=PromptErrors>> {
+                match o {
+                    Some(s) => Box::new(future::ok((Some(s.clone()), s))),
+                    None => Box::new(self.get_git_sha().map(|s| (None, s))),
+                }})
+            .join(status)
+            .map(move |((branch_opt, display), counts)| {
+                let mut resp = results.get().init_status().init_some();
+                if let Some(branch) = branch_opt {
+                    resp.set_branch(&branch);
+                }
+                resp.set_display_branch(&display);
+                write_counts(resp.init_counts(), &counts, false);
             });
         Box::new(ret)
     }
 
+    fn fill_branch_only(self, mut results: version_control_plugin::StatusResults) -> Box<Future<Item=(), Error=PromptErrors>> {
+        let ret = self.get_git_head_branch()
+            .map(move |branch_opt| {
+                let mut resp = results.get().init_status().init_some();
+                if let Some(branch) = branch_opt {
+                    resp.set_branch(&branch);
+                }
+            });
+        Box::new(ret)
+    }
 }
 
 pub struct Git(pub Handle);
@@ -141,7 +164,7 @@ pub struct Git(pub Handle);
 impl version_control_plugin::Server for Git {
     fn status(&mut self,
               params: version_control_plugin::StatusParams,
-              mut results: version_control_plugin::StatusResults) -> Promise<(), capnp::Error>
+              results: version_control_plugin::StatusResults) -> Promise<(), capnp::Error>
     {
         let handle = self.0.clone();
         let ret = future::lazy(move || {
@@ -149,17 +172,18 @@ impl version_control_plugin::Server for Git {
             let work_dir: path::PathBuf = path::Path::new(try!(params.get_directory())).into();
             let mut vc_dir = work_dir.clone();
             vc_dir.push(".git");
-            Ok(GitRequest {
+            if !is_directory_usable(&vc_dir) {
+                return Ok(None);
+            }
+            Ok(Some((params.get_branch_only(), GitRequest {
                 handle: handle,
                 work_dir: work_dir,
                 vc_dir: vc_dir,
-            })
-        }).and_then(|req| {
-            req.get_git_branch().join(req.run_git_status())
-        }).map(move |(branch, counts)| {
-            let mut resp = results.get();
-            resp.set_branch(&branch);
-            write_counts(resp.init_file_counts(), &counts, false);
+            })))
+        }).and_then(move |o| match o {
+            None => Box::new(future::ok(())),
+            Some((true, req)) => req.fill_branch_only(results),
+            Some((false, req)) => req.fill_all(results),
         }).map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
         Promise::from_future(ret)
     }
@@ -239,9 +263,9 @@ impl version_control_plugin::Server for Hg {
         }).and_then(|req| {
             req.get_hg_branch().join(req.run_hg_status())
         }).map(move |(branch, counts)| {
-            let mut resp = results.get();
-            resp.set_branch(&branch);
-            write_counts(resp.init_file_counts(), &counts, false);
+            let mut resp = results.get().init_status().init_some();
+            resp.set_display_branch(&branch);
+            write_counts(resp.init_counts(), &counts, false);
         }).map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
         Promise::from_future(ret)
     }
@@ -349,8 +373,8 @@ pub fn vc_status(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error
         let mut ret = String::new();
         // XXX less unwrap
         let reader = status.results.get_root_as_reader();
-        write!(ret, "{} {}", status.vc_name, reader.get_branch().unwrap()).unwrap();
-        let counts: Result<String> = reader.get_file_counts().map_err(Into::into).and_then(|c| {
+        write!(ret, "{} {}", status.vc_name, reader.get_display_branch().unwrap()).unwrap();
+        let counts: Result<String> = reader.get_counts().map_err(Into::into).and_then(|c| {
             let ret = format_counts(
                 STATUS_ORDER, &try!(btree_of_counts(&c)), c.get_truncated(), false);
             Ok(ret)
@@ -364,17 +388,20 @@ pub fn vc_status(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error
     Box::new(ret)
 }
 
-pub fn git_head_branch(_: TestVcDirService) -> Box<Future<Item=String, Error=PromptErrors>> {
-    unimplemented!()
+pub fn git_head_branch(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error=PromptErrors>> {
+    // XXX query branch only
+    let ret = find_vc_root(test_vc_dir).and_then(|o| {
+        let status = match o {
+            Some(v) => v,
+            None => return Ok(None),
+        };
+        match try!(status.results.get_root_as_reader().get_branch()) {
+            "" => Ok(None),
+            s => Ok(Some(s.into())),
+        }
+    }).and_then(|o| match o {
+        Some(head) => Ok(head),
+        None => Err(PromptErrors::NoHead),
+    });
+    Box::new(ret)
 }
-
-// pub fn git_head_branch() -> Result<String> {
-//     use std::io::Write;
-//     match try!(try!(VcLoc::from_current_dir()).map_or(Ok(None), |v| v.get_git_head_branch())) {
-//         Some(head) => Ok(head),
-//         None => {
-//             try!(write!(stderr(), "no branch found for git HEAD\n"));
-//             process::exit(111)
-//         },
-//     }
-// }

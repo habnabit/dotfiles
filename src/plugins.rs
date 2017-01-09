@@ -72,7 +72,7 @@ fn vc_plugin(p: &OwnedMessage<plugin::Owned>) -> Option<plugin::version_control:
 
 pub struct VcStatus {
     pub vc_name: String,
-    pub results: OwnedMessage<version_control_plugin::status_results::Owned>,
+    pub results: OwnedMessage<version_control_plugin::status::Owned>,
 }
 
 pub struct PluginLoader {
@@ -149,12 +149,17 @@ impl PluginLoader {
             .and_then(future::select_ok)
             .map(|(i, _)| i)
             .and_then(|(r, vc_name)| {
-                // XXX unwrap
-                let results = OwnedMessage::new_default(r.get().unwrap()).unwrap();
-                Ok(Some(VcStatus {
-                    vc_name: vc_name,
-                    results: results,
-                }))
+                use super::plugins_capnp::option::Which;
+                match try!(try!(try!(r.get()).get_status()).which()) {
+                    Which::None(()) => Ok(None),
+                    Which::Some(r) => {
+                        let results = try!(OwnedMessage::new_default(try!(r)));
+                        Ok(Some(VcStatus {
+                            vc_name: vc_name,
+                            results: results,
+                        }))
+                    },
+                }
             })
             .map_err(Into::into);
         Box::new(f)

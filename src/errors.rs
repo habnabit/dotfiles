@@ -8,6 +8,7 @@ pub enum PromptErrors {
     Boxed(Box<error::Error>),
     InvalidSshProxy(String),
     InstallationError(String),
+    NoHead,
 }
 
 impl error::Error for PromptErrors {
@@ -19,6 +20,7 @@ impl error::Error for PromptErrors {
             &Boxed(_) => "upstream error",
             &InvalidSshProxy(_) => "invalid ssh-proxy host",
             &InstallationError(_) => "couldn't install a file",
+            &NoHead => "no HEAD found",
         }
     }
 }
