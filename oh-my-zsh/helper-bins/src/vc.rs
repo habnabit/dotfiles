@@ -95,7 +95,7 @@ impl GitRequest {
             .map_err(Into::into)
             .and_then(|output| {
                 if output.status.success() {
-                    let git_ref = try!(from_utf8(output.stdout));
+                    let git_ref = from_utf8(output.stdout)?;
                     Ok(Some(
                         git_ref.as_str()
                             .trim_left_matches("refs/heads/")
@@ -119,7 +119,7 @@ impl GitRequest {
             .map_err(Into::into)
             .and_then(|output| {
                 if output.status.success() {
-                    let sha = try!(from_utf8(output.stdout));
+                    let sha = from_utf8(output.stdout)?;
                     return Ok(format!("detached {}", sha.as_str().trim()));
                 }
                 Ok("unknown".to_string())
@@ -168,8 +168,8 @@ impl version_control_plugin::Server for Git {
     {
         let handle = self.0.clone();
         let ret = future::lazy(move || {
-            let params = try!(params.get());
-            let work_dir: path::PathBuf = path::Path::new(try!(params.get_directory())).into();
+            let params = params.get()?;
+            let work_dir: path::PathBuf = path::Path::new(params.get_directory()?).into();
             let mut vc_dir = work_dir.clone();
             vc_dir.push(".git");
             if !is_directory_usable(&vc_dir) {
@@ -231,7 +231,7 @@ impl HgRequest {
             .map_err(Into::into)
             .and_then(|output| {
                 if output.status.success() {
-                    let hg_out = try!(from_utf8(output.stdout));
+                    let hg_out = from_utf8(output.stdout)?;
                     let words: Vec<&str> = hg_out.split_whitespace().collect();
                     return Ok(format!("{}.{}", words[1], words[0]));
                 }
@@ -251,8 +251,8 @@ impl version_control_plugin::Server for Hg {
     {
         let handle = self.0.clone();
         let ret = future::lazy(move || {
-            let params = try!(params.get());
-            let work_dir: path::PathBuf = path::Path::new(try!(params.get_directory())).into();
+            let params = params.get()?;
+            let work_dir: path::PathBuf = path::Path::new(params.get_directory()?).into();
             let mut vc_dir = work_dir.clone();
             vc_dir.push(".hg");
             Ok(HgRequest {
@@ -319,7 +319,7 @@ fn write_counts(mut counts_builder: file_counts::Builder, counts: &BTreeMap<char
 
 fn path_dev(path: &path::Path) -> Result<u64> {
     use std::os::unix::fs::MetadataExt;
-    Ok(try!(path.metadata().map(|m| m.dev())))
+    Ok(path.metadata().map(|m| m.dev())?)
 }
 
 fn vc_root_step(mut test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
@@ -360,7 +360,7 @@ fn find_vc_root(test_vc_dir: TestVcDirService) -> Box<Future<Item=Option<VcStatu
 }
 
 fn from_utf8(v: Vec<u8>) -> Result<String> {
-    Ok(try!(String::from_utf8(v)))
+    Ok(String::from_utf8(v)?)
 }
 
 pub fn vc_status(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error=PromptErrors>> {
@@ -376,7 +376,7 @@ pub fn vc_status(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error
         write!(ret, "{} {}", status.vc_name, reader.get_display_branch().unwrap()).unwrap();
         let counts: Result<String> = reader.get_counts().map_err(Into::into).and_then(|c| {
             let ret = format_counts(
-                STATUS_ORDER, &try!(btree_of_counts(&c)), c.get_truncated(), false);
+                STATUS_ORDER, &btree_of_counts(&c)?, c.get_truncated(), false);
             Ok(ret)
         });
         let counts = counts.unwrap();
@@ -395,7 +395,7 @@ pub fn git_head_branch(test_vc_dir: TestVcDirService) -> Box<Future<Item=String,
             Some(v) => v,
             None => return Ok(None),
         };
-        match try!(status.results.get_root_as_reader().get_branch()) {
+        match status.results.get_root_as_reader().get_branch()? {
             "" => Ok(None),
             s => Ok(Some(s.into())),
         }
