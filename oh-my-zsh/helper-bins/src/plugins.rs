@@ -109,6 +109,7 @@ fn select_first_some<T: 'static, A: 'static>((opt, futures): (Option<T>, Vec<A>)
 {
     match opt {
         Some(v) => Box::new(future::ok(Some(v))),
+        None if futures.is_empty() => Box::new(future::ok(None)),
         None => Box::new(future::select_ok(futures).and_then(select_first_some)),
     }
 }

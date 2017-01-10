@@ -240,6 +240,17 @@ impl HgRequest {
         Box::new(ret)
     }
 
+    fn fill_all(self, mut results: version_control_plugin::StatusResults) -> Box<Future<Item=(), Error=PromptErrors>> {
+        let ret = self.get_hg_branch()
+            .join(self.run_hg_status())
+            .map(move |(branch, counts)| {
+                let mut resp = results.get().init_status().init_some();
+                resp.set_branch(&branch);
+                resp.set_display_branch(&branch);
+                write_counts(resp.init_counts(), &counts, false);
+            });
+        Box::new(ret)
+    }
 }
 
 pub struct Hg(pub Handle);
@@ -247,7 +258,7 @@ pub struct Hg(pub Handle);
 impl version_control_plugin::Server for Hg {
     fn status(&mut self,
               params: version_control_plugin::StatusParams,
-              mut results: version_control_plugin::StatusResults) -> Promise<(), capnp::Error>
+              results: version_control_plugin::StatusResults) -> Promise<(), capnp::Error>
     {
         let handle = self.0.clone();
         let ret = future::lazy(move || {
@@ -255,17 +266,19 @@ impl version_control_plugin::Server for Hg {
             let work_dir: path::PathBuf = path::Path::new(params.get_directory()?).into();
             let mut vc_dir = work_dir.clone();
             vc_dir.push(".hg");
-            Ok(HgRequest {
-                handle: handle,
-                work_dir: work_dir,
-                vc_dir: vc_dir,
-            })
-        }).and_then(|req| {
-            req.get_hg_branch().join(req.run_hg_status())
-        }).map(move |(branch, counts)| {
-            let mut resp = results.get().init_status().init_some();
-            resp.set_display_branch(&branch);
-            write_counts(resp.init_counts(), &counts, false);
+            if !is_directory_usable(&vc_dir) {
+                Ok(None)
+            } else {
+                Ok(Some(HgRequest {
+                    handle: handle,
+                    work_dir: work_dir,
+                    vc_dir: vc_dir,
+                }))
+            }
+        }).and_then(|o| {
+            o
+                .map(move |req| req.fill_all(results))
+                .unwrap_or_else(|| Box::new(future::ok(())))
         }).map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
         Promise::from_future(ret)
     }
