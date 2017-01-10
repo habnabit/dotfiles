@@ -17,7 +17,8 @@ use super::utils::OwnedMessage;
 use super::vc::{Git, Hg};
 
 fn extract_plugins(resp: &::capnp::capability::Response<plugin_process::initialize_results::Owned>) -> Result<Vec<OwnedMessage<plugin::Owned>>> {
-    try!(try!(resp.get()).get_plugins())
+    resp.get()?
+        .get_plugins()?
         .iter()
         .map(|p| OwnedMessage::new_default(p.clone()))
         .collect::<::std::result::Result<_, ::capnp::Error>>()
@@ -62,11 +63,53 @@ fn builtin_vc_plugin<T: 'static>(name: &str, server: T) -> OwnedMessage<plugin::
     ret
 }
 
-fn vc_plugin(p: &OwnedMessage<plugin::Owned>) -> Option<plugin::version_control::Reader> {
+pub struct VcPlugin<'a>(pub plugin::version_control::Reader<'a>);
+
+impl<'a> VcPlugin<'a> {
+    pub fn get_vc_name(&self, directory: &str, branch_only: bool) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>> {
+        let ret = future::result((move || {
+            let mut req = self.0.get_plugin()?.status_request();
+            let vc_name: String = self.0.get_vc_name()?.into();
+            {
+                let mut params = req.get();
+                params.set_directory(directory);
+                params.set_branch_only(branch_only);
+            }
+            Ok((req, vc_name))
+        })()).and_then(|(req, vc_name)| {
+            req.send().promise.map(move |r| (r, vc_name))
+        }).and_then(|(r, vc_name)| {
+            use super::plugins_capnp::option::Which;
+            match r.get()?.get_status()?.which()? {
+                Which::None(()) => Ok(None),
+                Which::Some(r) => {
+                    let results = OwnedMessage::new_default(r?)?;
+                    Ok(Some(VcStatus {
+                        vc_name: vc_name,
+                        results: results,
+                    }))
+                },
+            }
+        }).map_err(Into::into);
+        Box::new(ret)
+    }
+
+}
+
+fn vc_plugin(p: &OwnedMessage<plugin::Owned>) -> Option<VcPlugin> {
     use super::plugins_capnp::plugin::Which::*;
     match p.get_root_as_reader().which() {
-        Ok(VersionControl(p)) => Some(p),
+        Ok(VersionControl(p)) => Some(VcPlugin(p)),
         _ => None,
+    }
+}
+
+fn select_first_some<T: 'static, A: 'static>((opt, futures): (Option<T>, Vec<A>)) -> Box<Future<Item=Option<T>, Error=A::Error>>
+    where A: Future<Item=Option<T>>
+{
+    match opt {
+        Some(v) => Box::new(future::ok(Some(v))),
+        None => Box::new(future::select_ok(futures).and_then(select_first_some)),
     }
 }
 
@@ -118,7 +161,7 @@ impl PluginLoader {
             Err(e) => return Box::new(future::err(e.into())),
         }.map(move |file| {
             let handle_ = handle.clone();
-            future::done(file)
+            future::result(file)
                 .map_err(Into::into)
                 .and_then(move |d| load_plugin(handle_, &d.path()))
         });
@@ -136,33 +179,11 @@ impl PluginLoader {
             return Box::new(future::ok(None));
         }
         let path = path.to_string_lossy();
-        let futures: ::std::result::Result<Vec<_>, ::capnp::Error> = self.plugins.iter()
+        let futures: Vec<_> = self.plugins.iter()
             .filter_map(vc_plugin)
-            .map(|p| {
-                let vc_name: String = try!(p.get_vc_name()).into();
-                let mut req = try!(p.get_plugin()).status_request();
-                req.get().set_directory(&path);
-                Ok(req.send().promise.map(move |r| (r, vc_name)))
-            })
+            .map(|p| p.get_vc_name(&path, false))
             .collect();
-        let f = future::done(futures)
-            .and_then(future::select_ok)
-            .map(|(i, _)| i)
-            .and_then(|(r, vc_name)| {
-                use super::plugins_capnp::option::Which;
-                match try!(try!(try!(r.get()).get_status()).which()) {
-                    Which::None(()) => Ok(None),
-                    Which::Some(r) => {
-                        let results = try!(OwnedMessage::new_default(try!(r)));
-                        Ok(Some(VcStatus {
-                            vc_name: vc_name,
-                            results: results,
-                        }))
-                    },
-                }
-            })
-            .map_err(Into::into);
-        Box::new(f)
+        Box::new(select_first_some((None, futures)))
     }
 
     pub fn spawn(self) -> TestVcDirService {
