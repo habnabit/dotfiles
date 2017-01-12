@@ -244,7 +244,7 @@ impl<T> tokio_service::Service for PluginRequestHandle<T>
     type Error = PromptErrors;
     type Future = Box<Future<Item=T::Response, Error=PromptErrors>>;
 
-    fn call(&mut self, req: T::Request) -> Box<Future<Item=T::Response, Error=PromptErrors>> {
+    fn call(&self, req: T::Request) -> Box<Future<Item=T::Response, Error=PromptErrors>> {
         let req_tx = self.sender.clone();
         let (resp_tx, resp_rx) = oneshot::channel();
         let ret = req_tx.send((req, resp_tx))

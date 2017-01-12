@@ -10,7 +10,6 @@ extern crate regex;
 extern crate sha1;
 extern crate tempfile;
 extern crate tokio_core;
-extern crate tokio_more;
 extern crate tokio_process;
 extern crate tokio_service;
 
