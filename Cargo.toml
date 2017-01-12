@@ -22,8 +22,8 @@ tokio-process = "*"
 # maybe later
 # git2 = {version = "0.4.3", default-features = false}
 
-[dependencies.tokio-more]
-git = "https://github.com/tokio-rs/tokio-more"
+[replace."tokio-signal:0.1.0"]
+git = "https://github.com/alexcrichton/tokio-signal"
 
 [dependencies.tokio-service]
 git = "https://github.com/tokio-rs/tokio-service"

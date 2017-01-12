@@ -335,7 +335,7 @@ fn path_dev(path: &path::Path) -> Result<u64> {
     Ok(path.metadata().map(|m| m.dev())?)
 }
 
-fn vc_root_step(mut test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
+fn vc_root_step(test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
 {
     enum Step {
         Done(Result<Option<VcStatus>>),
