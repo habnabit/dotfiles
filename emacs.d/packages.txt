@@ -1,6 +1,6 @@
-auto-complete
 color-identifiers-mode
 color-moccur
+company
 flycheck
 flycheck-ocaml
 flycheck-rust
@@ -14,9 +14,11 @@ markdown-mode
 merlin
 notmuch
 popwin
-pymacs
+racer
 rainbow-delimiters
+rjsx-mode
 rust-mode
+smartparens
 solarized-theme
 tuareg
 web-mode

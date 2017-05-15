@@ -41,18 +41,18 @@ export PATH="$HOME/.local/bin:$HOME/.local/sbin:$PATH"
 
 bindkey '\e.' insert-last-word
 setopt transientrprompt extendedhistory histignoredups histexpiredupsfirst \
-    histfindnodups histsavenodups histreduceblanks
+    histfindnodups histsavenodups histreduceblanks auto_cd
 unsetopt correct_all
 HISTSIZE=10000000
 SAVEHIST=10000000
+cdpath=("$HOME/Projects")
 
 export OCAMLRUNPARAM=b
 : ${LANG:=en_US.UTF-8}; export LANG
-: ${remote_emacs_auth:="$HOME/.emacs.d/remote-server"}; export remote_emacs_auth
-[[ -z $SSH_AUTH_SOCK || ! -e $SSH_AUTH_SOCK ]] && export SSH_AUTH_SOCK=$HOME/.ssh/auth-sock
 
+export EDITOR="$(which emacsclient) --alternate-editor ex --server-file ${HOME}/.emacs.d/server/server"
+alias e="${EDITOR} --no-wait"
 alias HEAD="curl --head"
-alias cleanpip="rm -vrf ${TMPDIR:-/tmp}/pip-build-${USER}"
 alias pc="passacre generate -c"
 alias pcc="pc -C"
 alias pce="${EDITOR:-emacs} ~/.passacre.yaml"
@@ -77,23 +77,6 @@ t () {
     host=$1
     shift
     ssh -tt "${host}" "$@"
-}
-
-irc () {
-    ssh -tt \
-        -D 1080 \
-        "$@" \
-        carlotta \
-        "~/.local/bin/tmux attach -t irc"
-}
-
-irc443 () {
-    irc -p 443 -o "ServerAliveInterval 60" "$@"
-}
-
-irc-mosh () {
-     /usr/bin/perl =mosh "$@" carlotta -- \
-         /home/habnabit/.local/bin/tmux -2u attach -tirc
 }
 
 gffm () {

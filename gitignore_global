@@ -14,3 +14,4 @@ dropin.cache
 *.egg-info
 .coverage
 htmlcov
+.cargo

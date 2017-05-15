@@ -71,20 +71,14 @@
 ;; (require 'parsley-mode)
 ;; (require 'caml-types)
 (require 'tuareg)
-(require 'auto-complete)
 (require 'flycheck)
 (require 'flycheck-jsx)
 (require 'flycheck-rust)
+(require 'racer)
+(require 'smartparens)
+(require 'rjsx-mode)
 
-(autoload 'pymacs-apply "pymacs")
-(autoload 'pymacs-call "pymacs")
-(autoload 'pymacs-eval "pymacs" nil t)
-(autoload 'pymacs-exec "pymacs" nil t)
-(autoload 'pymacs-load "pymacs" nil t)
-(autoload 'pymacs-autoload "pymacs")
 (autoload 'rust-mode "rust-mode" nil t)
-(pymacs-load "ropemacs" "rope-")
-(setq ropemacs-enable-autoimport t)
 
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
@@ -96,10 +90,18 @@
 (ido-mode 1)
 (global-git-gutter-mode t)
 (popwin-mode 1)
-(global-auto-complete-mode t)
+(global-company-mode t)
+(global-eldoc-mode t)
 (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
 (add-hook 'after-init-hook #'global-flycheck-mode)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+(add-hook 'rust-mode-hook #'racer-mode)
+(smartparens-global-mode t)
+
+(dolist (elt '("(" "[" "{"))
+  (sp-pair elt nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC"))))
+(dolist (elt '(emacs-lisp-mode rust-mode))
+  (sp-local-pair elt "'" nil :actions nil))
 
 ;; (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
@@ -169,6 +171,7 @@
 (global-set-key (kbd "C-c C-3") 'server-edit)
 (global-set-key (kbd "C-c g") 'magit-status)
 (define-key tuareg-mode-map (kbd "C-c C-t") 'caml-types-show-type)
+(define-key rjsx-mode-map "<" nil)
 
 (defun isort nil
   "Sort python imports"
@@ -200,3 +203,7 @@ See URL `https://github.com/w3c/tidy-html5'."
   (setq solarized-high-contrast-mode-line t)
   (load-theme 'solarized-dark t)
   (global-hl-line-mode 1))
+
+(when (display-graphic-p)
+  (tool-bar-mode -1)
+  (server-start))
