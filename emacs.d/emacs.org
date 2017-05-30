@@ -1,0 +1,340 @@
+#+BABEL: :cache yes
+#+PROPERTY: header-args :tangle yes :comments org
+
+* Emacs initialization
+** Bootstrap
+
+#+BEGIN_SRC emacs-lisp
+  (require 'cl)
+  (require 'package)
+  (setq package-enable-at-startup nil)
+  (package-initialize)
+  (setq package-archives
+        '(("melpa" . "https://melpa.org/packages/")
+          ("marmalade" . "https://marmalade-repo.org/packages/")
+          ("elpa" . "https://elpa.gnu.org/packages/")))
+
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+
+  (eval-when-compile
+    (require 'use-package))
+#+END_SRC
+
+** More interesting work
+
+Decide if git should be used
+
+#+BEGIN_SRC emacs-lisp
+  (defvar hab/git-binary-exists (and (executable-find "git") t)
+    "Is there a git binary installed?")
+
+  (defcustom hab/load-git-modes hab/git-binary-exists
+    "Load git mode packages?"
+    :group 'hab
+    :type 'boolean)
+#+END_SRC
+
+Install packages
+
+#+BEGIN_SRC emacs-lisp
+  (use-package bind-key :ensure t)
+
+  (use-package undo-tree
+               :ensure t
+               :diminish undo-tree-mode)
+
+  (use-package smartparens
+               :ensure t
+               :config
+               (smartparens-global-mode t)
+               (dolist (elt '("(" "[" "{"))
+                 (sp-pair elt nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC"))))
+               (dolist (elt '(emacs-lisp-mode rust-mode))
+                 (sp-local-pair elt "'" nil :actions nil)))
+
+  (use-package solarized-theme
+               :ensure t
+               :config
+               (setq solarized-high-contrast-mode-line t
+                     solarized-broken-srgb nil
+                     solarized-diff-mode (quote high)
+                     solarized-italic nil
+                     solarized-underline nil)
+               (load-theme 'solarized-dark t)
+               (global-hl-line-mode 1))
+
+  (use-package rainbow-delimiters
+               :ensure t
+               :config
+               (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
+
+  (use-package helm
+               :ensure t
+               :bind
+               (("M-x" . helm-M-x)
+                ("C-x C-f" . helm-find-files))
+               :config
+               (helm-mode 1))
+
+  (use-package rust-mode
+               :mode ("\\.rs\\'" . rust-mode))
+
+  (use-package yaml-mode
+               :mode ("\\.ya?ml\\'" . yaml-mode))
+
+  (use-package racer
+               :after rust-mode
+               :config
+               (add-hook 'rust-mode-hook #'racer-mode))
+
+  (use-package flycheck
+               :bind
+               (("M-n" . flycheck-next-error)
+                ("M-p" . flycheck-previous-error))
+               :config
+               (global-flycheck-mode))
+
+  (use-package helm-flycheck
+               :after flycheck
+               :bind
+               (("C-c ! h" . helm-flycheck)))
+
+  (use-package flycheck-rust
+               :after rust-mode
+               :config
+               (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+
+  (use-package company
+               :after racer
+               :config
+               (global-company-mode t))
+
+  (use-package magit
+               :if hab/load-git-modes
+               :bind
+               (("C-c g" . magit-status)))
+
+  (use-package git-gutter
+               :if hab/load-git-modes
+               :bind
+               (("M-N" . git-gutter:next-hunk)
+                ("M-P" . git-gutter:previous-hunk)
+                ("C-c k" . git-gutter:revert-hunk))
+               :config
+               (global-git-gutter-mode t))
+
+  (use-package org
+               :bind
+               (:map org-mode-map ("<return>" . org-return-indent)))
+#+END_SRC
+
+Reconfigure defaults
+
+#+BEGIN_SRC emacs-lisp
+  (defvar user-temporary-file-directory (concat user-emacs-directory "backups/"))
+
+  (setq backup-by-copying t
+        backup-directory-alist
+        `(("." . ,user-temporary-file-directory) (,tramp-file-name-regexp nil))
+        auto-save-list-file-prefix
+        (concat user-temporary-file-directory ".auto-saves-")
+        auto-save-file-name-transforms
+        `((".*" ,user-temporary-file-directory t)))
+
+  (add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+  (defun hab/extend-list (list-sym &rest elements)
+    (let (list-val (symbol-value list-sym))
+      (if list-val
+          (setcdr (last list-val) elements)
+        (set list-sym elements)))
+    (symbol-value list-sym))
+
+  (hab/extend-list 'default-frame-alist
+                   '(height . 40)
+                   '(width . 120)
+                   '(alpha 90 85))
+
+  (defcustom hab/best-font-families '((:family "Menlo" :height 100))
+    "Font families to try."
+    :group 'hab)
+
+  (defun hab/pick-best-font ()
+    "Activate the best font from hab/best-font-families."
+    (interactive)
+    (dolist (font-plist hab/best-font-families)
+      (when (find-font (apply 'font-spec font-plist))
+        (apply 'set-face-attribute 'default nil font-plist)
+        (return))))
+
+  (hab/pick-best-font)
+
+  (add-to-list 'load-path (concat user-emacs-directory "lisp/"))
+  (require 'quick-yes)
+  (defalias 'y-or-n-p 'yes-or-no-p)
+
+  (bind-keys*
+   ("C-x C-b" . buffer-menu)
+   ("C-c q" . auto-fill-mode)
+   ("C-c C-3" . server-edit)
+   :map prog-mode-map
+   ("<return>" . newline-and-indent))
+#+END_SRC
+
+Start the server.
+
+#+BEGIN_SRC emacs-lisp
+  (defun hab/next-frame () (interactive) (other-frame 1))
+  (defun hab/prev-frame () (interactive) (other-frame -1))
+
+  (when (display-graphic-p)
+    (tool-bar-mode -1)
+    (dolist (key '("C-z" "C-x C-z" "s-m"))
+      (unbind-key key))
+    (bind-keys*
+     ("s-`" . hab/next-frame)
+     ("s-~" . hab/prev-frame))
+    (server-start))
+#+END_SRC
+
+** Old config
+
+#+BEGIN_SRC emacs-lisp
+  ;; (add-to-list 'load-path "~/.emacs.d/lisp")
+  ;; ;; (add-to-list 'load-path "~/.emacs.d/pymacs")
+  ;; (load "~/.emacs.d/compy-specific/init.el")
+  ;; (defun fix-path ()
+  ;;   (interactive)
+  ;;   (setenv "PATH" (mapconcat 'identity exec-path ":")))
+  ;; (fix-path)
+
+  ;; (when (and (>= emacs-major-version 24)
+  ;;            (>= emacs-minor-version 2))
+  ;;   (eval-after-load "mumamo"
+  ;;     '(setq mumamo-per-buffer-local-vars
+  ;;            (delq 'buffer-file-name mumamo-per-buffer-local-vars))))
+
+  ;; (load "~/.emacs.d/nxhtml/autostart.el")
+  ;; (require 'magit)
+  ;; (require 'css-mode)
+  ;; (require 'haml-mode)
+  ;; (require 'gnus-art)
+  ;; (require 'notmuch)
+  ;; (require 'git-gutter)
+  ;; (require 'popwin)
+  ;; (require 'rainbow-delimiters)
+  ;; (require 'markdown-mode)
+  ;; (require 'jinja2-mode)
+  ;; (require 'web-mode)
+  ;; (require 'yaml-mode)
+  ;; ;; (require 'parsley-mode)
+  ;; ;; (require 'caml-types)
+  ;; (require 'tuareg)
+  ;; (require 'flycheck)
+  ;; (require 'flycheck-jsx)
+  ;; (require 'flycheck-rust)
+  ;; (require 'racer)
+  ;; (require 'smartparens)
+  ;; (require 'rjsx-mode)
+
+  ;; (autoload 'rust-mode "rust-mode" nil t)
+
+  ;; (put 'narrow-to-region 'disabled nil)
+  ;; (put 'downcase-region 'disabled nil)
+  ;; (put 'upcase-region 'disabled nil)
+  ;; (show-paren-mode 1)
+  ;; (column-number-mode 1)
+  ;; (add-to-list 'completion-ignored-extensions ".annot")
+  ;; (add-to-list 'completion-ignored-extensions ".orig")
+  ;; (ido-mode 1)
+  ;;
+  ;; (popwin-mode 1)
+  ;;
+  ;; (global-eldoc-mode t)
+  ;;
+  ;; (add-hook 'after-init-hook #'global-flycheck-mode)
+  ;;
+
+  ;; (add-to-list 'auto-mode-alist '("\\.parsley\\'" . parsley-mumamo))
+  ;; (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.tac\\'" . python-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.jsx?\\'" . web-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.mako\\'" . web-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.html\\'" . web-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.jinja2\\'" . web-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.tmpl\\'" . web-mode))
+  ;; (add-to-list 'auto-mode-alist ')
+  ;; (add-to-list 'auto-mode-alist '("\\.ml[iyl]?$" . tuareg-mode))
+  ;; (add-to-list 'auto-mode-alist ')
+  ;; (add-to-list 'interpreter-mode-alist '("python" . python-mode))
+  ;; (setq web-mode-engines-alist '(("django" . "\\.jinja2\\'")
+  ;;                                ("velocity" . "\\.tmpl\\'")))
+  ;; (flycheck-add-mode 'javascript-jshint 'web-mode)
+
+  ;; (autoload 'tuareg-mode "tuareg" (interactive) "Major mode for editing Caml code." t)
+  ;; (autoload 'camldebug "camldebug" (interactive) "Debug caml mode")
+
+  ;; (add-hook 'php-mode-hook
+  ;;           #'(lambda ()
+  ;;               (setq c-basic-offset 4)))
+  ;; (add-hook 'web-mode-hook
+  ;;           #'(lambda ()
+  ;;               (when (or (equal web-mode-content-type "jsx")
+  ;;                         (equal web-mode-content-type "javascript"))
+  ;;                 (setq web-mode-code-indent-offset 2))))
+
+  ;; (setq twittering-reverse-mode t)
+
+  ;; (require 'dired-x)
+  ;; (setq dired-omit-files
+  ;;       (rx (or (seq bol (? ".") "#") ;; emacs autosave files
+  ;;               (seq "~" eol)                 ;; backup-files
+  ;;               (seq bol "CVS" eol)           ;; CVS dirs
+  ;;               )))
+  ;; (setq dired-omit-extensions
+  ;;       (append dired-latex-unclean-extensions
+  ;;               dired-bibtex-unclean-extensions
+  ;;               dired-texinfo-unclean-extensions
+  ;;               '(".pyc"
+  ;;                 ".elc")))
+  ;; (add-hook 'dired-mode-hook (lambda () (dired-omit-mode 1)))
+
+  ;; (global-set-key (kbd
+  ;; (global-set-key (kbd
+  ;; (define-key tuareg-mode-map (kbd "C-c C-t") 'caml-types-show-type)
+  ;; (define-key rjsx-mode-map "<" nil)
+
+  ;; (defun isort nil
+  ;;   "Sort python imports"
+  ;;   (interactive)
+  ;;   (shell-command-on-region
+  ;;    (point-min) (point-max)
+  ;;    "isort -"
+  ;;    nil t nil t))
+
+
+  ;; (flycheck-define-checker web-html-tidy
+  ;;   "A HTML syntax and style checker using Tidy.
+
+  ;; See URL `https://github.com/w3c/tidy-html5'."
+  ;;   :command ("tidy" (config-file "-config" flycheck-tidyrc) "-e" "-q" source)
+  ;;   :error-patterns
+  ;;   ((error line-start
+  ;;           "line " line
+  ;;           " column " column
+  ;;           " - Error: " (message) line-end)
+  ;;    (warning line-start
+  ;;             "line " line
+  ;;             " column " column
+  ;;             " - Warning: " (message) line-end))
+  ;;   :modes web-mode)
+
+#+END_SRC
