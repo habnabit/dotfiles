@@ -5,6 +5,8 @@
 ** Bootstrap
 
 #+BEGIN_SRC emacs-lisp
+  ;; -*- lexical-binding: t -*-
+
   (require 'cl)
   (require 'package)
   (setq package-enable-at-startup nil)
@@ -144,23 +146,26 @@ Reconfigure defaults
         auto-save-list-file-prefix
         (concat user-temporary-file-directory ".auto-saves-")
         auto-save-file-name-transforms
-        `((".*" ,user-temporary-file-directory t)))
+        `((".*" ,user-temporary-file-directory t))
+        custom-file "~/.emacs.d/custom.el")
 
   (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
   (defun hab/extend-list (list-sym &rest elements)
-    (let (list-val (symbol-value list-sym))
+    (let ((list-sym (or list-sym (intern-soft list-sym)))
+          (list-val (symbol-value list-sym)))
       (if list-val
           (setcdr (last list-val) elements)
-        (set list-sym elements)))
-    (symbol-value list-sym))
+        (set list-sym elements))
+      (symbol-value list-sym)))
 
   (hab/extend-list 'default-frame-alist
                    '(height . 40)
                    '(width . 120)
                    '(alpha 90 85))
 
-  (defcustom hab/best-font-families '((:family "Menlo" :height 100))
+  (defcustom hab/best-font-families '((:family "Menlo" :height 100)
+                                      (:family "Monofur" :height 120))
     "Font families to try."
     :group 'hab)
 
@@ -184,6 +189,17 @@ Reconfigure defaults
    ("C-c C-3" . server-edit)
    :map prog-mode-map
    ("<return>" . newline-and-indent))
+#+END_SRC
+
+Load local config.
+
+#+BEGIN_SRC emacs-lisp
+  (defcustom hab/compy-specific-elisp (concat user-emacs-directory "compy-specific.org")
+    "Computer-local elisp to load."
+    :group 'hab)
+
+  (when (file-exists-p hab/compy-specific-elisp)
+    (org-babel-load-file hab/compy-specific-elisp))
 #+END_SRC
 
 Start the server.
