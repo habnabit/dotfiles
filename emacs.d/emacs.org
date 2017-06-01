@@ -114,6 +114,7 @@ Install packages
   (use-package company
                :after racer
                :config
+               (setq company-global-modes '(not org-mode))
                (global-company-mode t))
 
   (use-package magit
@@ -131,8 +132,8 @@ Install packages
                (global-git-gutter-mode t))
 
   (use-package org
-               :bind
-               (:map org-mode-map ("<return>" . org-return-indent)))
+               :config
+               (sp-local-pair 'org-mode "~" "~"))
 #+END_SRC
 
 Reconfigure defaults
@@ -147,7 +148,8 @@ Reconfigure defaults
         (concat user-temporary-file-directory ".auto-saves-")
         auto-save-file-name-transforms
         `((".*" ,user-temporary-file-directory t))
-        custom-file "~/.emacs.d/custom.el")
+        custom-file "~/.emacs.d/custom.el"
+        uniquify-buffer-name-style 'forward)
 
   (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
@@ -189,6 +191,8 @@ Reconfigure defaults
    ("C-c C-3" . server-edit)
    :map prog-mode-map
    ("<return>" . newline-and-indent))
+
+  (show-paren-mode t)
 #+END_SRC
 
 Load local config.
