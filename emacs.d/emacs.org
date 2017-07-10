@@ -192,6 +192,7 @@ Reconfigure defaults
    ("<return>" . newline-and-indent))
 
   (show-paren-mode t)
+  (column-number-mode)
 #+END_SRC
 
 Load local config.
@@ -268,8 +269,6 @@ Start the server.
   ;; (put 'narrow-to-region 'disabled nil)
   ;; (put 'downcase-region 'disabled nil)
   ;; (put 'upcase-region 'disabled nil)
-  ;; (show-paren-mode 1)
-  ;; (column-number-mode 1)
   ;; (add-to-list 'completion-ignored-extensions ".annot")
   ;; (add-to-list 'completion-ignored-extensions ".orig")
   ;; (ido-mode 1)
