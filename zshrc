@@ -50,7 +50,7 @@ cdpath=("$HOME/Projects")
 export OCAMLRUNPARAM=b
 : ${LANG:=en_US.UTF-8}; export LANG
 
-export EDITOR="$(which emacsclient) --alternate-editor ex --server-file ${HOME}/.emacs.d/server/server"
+export EDITOR="$(which emacsclient) --alternate-editor ex"
 alias e="${EDITOR} --no-wait"
 alias HEAD="curl --head"
 alias pc="passacre generate -c"
