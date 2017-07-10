@@ -203,6 +203,13 @@ Load local config.
 
   (when (file-exists-p hab/compy-specific-elisp)
     (org-babel-load-file hab/compy-specific-elisp))
+
+  (defun hab/fix-path ()
+    (interactive)
+    (setenv "PATH" (mapconcat 'identity exec-path ":")))
+
+  (hab/fix-path)
+
 #+END_SRC
 
 Start the server.
@@ -226,11 +233,6 @@ Start the server.
 #+BEGIN_SRC emacs-lisp
   ;; (add-to-list 'load-path "~/.emacs.d/lisp")
   ;; ;; (add-to-list 'load-path "~/.emacs.d/pymacs")
-  ;; (load "~/.emacs.d/compy-specific/init.el")
-  ;; (defun fix-path ()
-  ;;   (interactive)
-  ;;   (setenv "PATH" (mapconcat 'identity exec-path ":")))
-  ;; (fix-path)
 
   ;; (when (and (>= emacs-major-version 24)
   ;;            (>= emacs-minor-version 2))
