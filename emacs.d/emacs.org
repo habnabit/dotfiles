@@ -231,6 +231,29 @@ Start the server.
     (server-start))
 #+END_SRC
 
+** reST additions
+
+#+BEGIN_SRC emacs-lisp
+  (defun hab/parsed-html-from-rst-buffer ()
+    (let ((prev-buffer (current-buffer)))
+      (with-temp-buffer
+        (insert-buffer-substring prev-buffer)
+        (shell-command-on-region (point-min) (point-max) "rst2html.py" (current-buffer) t "*Messages*" t)
+        (libxml-parse-html-region (point-min) (point-max)))))
+
+  (defun hab/show-buffer-as-rst ()
+    (interactive)
+    (let ((html-buffer (get-buffer-create (concat "*rst2html: " (buffer-name) "*")))
+          (parsed-html (hab/parsed-html-from-rst-buffer)))
+      (with-output-to-temp-buffer html-buffer
+        (with-current-buffer html-buffer
+          (erase-buffer)
+          (shr-insert-document parsed-html)
+          (goto-char (point-min)))
+        (pop-to-buffer html-buffer))))
+
+#+END_SRC
+
 ** Old config
 
 #+BEGIN_SRC emacs-lisp
