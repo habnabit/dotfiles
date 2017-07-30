@@ -54,7 +54,7 @@ Install packages
                :config
                (smartparens-global-mode t)
                (dolist (elt '("(" "[" "{"))
-                 (sp-pair elt nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC"))))
+                 (sp-pair elt nil :post-handlers '(("||\n[i]" "<return>") ("| " "SPC"))))
                (dolist (elt '(emacs-lisp-mode rust-mode))
                  (sp-local-pair elt "'" nil :actions nil)))
 
