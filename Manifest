@@ -1,6 +1,6 @@
 exists   compy-specific.sh
 install  emacs.d
-exists   emacs.d/compy-specific/init.el
+exists   emacs.d/compy-specific.org
 install  emacs.d/emacs
 assemble gitconfig
 install  gitignore_global
