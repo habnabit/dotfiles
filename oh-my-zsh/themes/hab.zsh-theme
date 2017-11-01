@@ -2,6 +2,25 @@
 autoload -U add-zsh-hook
 zmodload zsh/datetime
 
+function hab_prompt_run () {
+    cd ${1}
+    shift
+    hab-prompt-utils "$@"
+}
+
+function hab_prompt_results () {
+    if [[ $2 -eq 0 ]]; then
+	promptinfo=("${(0)3}")
+    else
+	promptinfo=(files ✘ duration ✘)
+	echo >/tmp/zlog "${(q)@}"
+    fi
+    zle && zle reset-prompt
+}
+
+async_start_worker hab_prompt -u -n
+async_register_callback hab_prompt hab_prompt_results
+
 typeset -A promptinfo
 typeset -a timer
 
@@ -27,9 +46,9 @@ function vc_prompt_info () {
 
 typeset -A jobtypes
 jobtypes=(running r suspended s done d)
-function prompt_hab_precmd () {
-  promptinfo=()
-  promptinfo=("${(0)$(hab-prompt-utils precmd ${timer} ${epochtime})}")
+function hab_prompt_precmd () {
+  promptinfo=(files ❖ duration ❖)
+  async_job hab_prompt hab_prompt_run ${PWD} precmd ${timer} ${epochtime}
   timer=()
   local jobs=''
   for type in ${(k)jobtypes}; do
@@ -47,12 +66,12 @@ function prompt_hab_precmd () {
   fi
   environment_indicator=${environment_indicator:+"%{$fg[magenta]$environment_indicator%}%{$reset_color%} "}
 }
-add-zsh-hook precmd prompt_hab_precmd
+add-zsh-hook precmd hab_prompt_precmd
 
-function prompt_hab_preexec () {
+function hab_prompt_preexec () {
   timer=($epochtime)
 }
-add-zsh-hook preexec prompt_hab_preexec
+add-zsh-hook preexec hab_prompt_preexec
 
 ZSH_THEME_VC_PROMPT_PREFIX="  %{$fg[yellow]%}«"
 ZSH_THEME_VC_PROMPT_SUFFIX="»%{$reset_color%}"
