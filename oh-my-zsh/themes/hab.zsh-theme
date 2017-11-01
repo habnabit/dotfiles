@@ -14,7 +14,7 @@ function hab_prompt_results () {
     else
 	promptinfo=(files ✘ duration ✘)
     fi
-    zle && zle reset-prompt
+    zle && zle .reset-prompt
 }
 
 async_start_worker hab_prompt -u -n
