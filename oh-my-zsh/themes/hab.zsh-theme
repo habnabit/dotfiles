@@ -9,11 +9,10 @@ function hab_prompt_run () {
 }
 
 function hab_prompt_results () {
-    if [[ $2 -eq 0 ]]; then
+    if [[ $2 == 0 ]]; then
 	promptinfo=("${(0)3}")
     else
 	promptinfo=(files ✘ duration ✘)
-	echo >/tmp/zlog "${(q)@}"
     fi
     zle && zle reset-prompt
 }
@@ -33,38 +32,31 @@ local dircount='${promptinfo[files]}'
 local vc_info='$(vc_prompt_info)%{$reset_color%}'
 local return_code="  %(?.%{$fg[cyan]%}.%{$fg[red]%}%? )\${promptinfo[duration]} ↵%{$reset_color%}"
 
-if [[ $(id -u) = 0 ]]; then
-  prompt_char='#'
+if [[ $(id -u) == 0 ]]; then
+    prompt_char='#'
 fi
 
 function vc_prompt_info () {
-  local vc_status="${promptinfo[vc]}"
-  if [[ -n $vc_status ]]; then
-      echo "$ZSH_THEME_VC_PROMPT_PREFIX${vc_status}$ZSH_THEME_VC_PROMPT_SUFFIX"
-  fi
+    local vc_status="${promptinfo[vc]}"
+    if [[ -n $vc_status ]]; then
+	echo "$ZSH_THEME_VC_PROMPT_PREFIX${vc_status}$ZSH_THEME_VC_PROMPT_SUFFIX"
+    fi
 }
 
 typeset -A jobtypes
 jobtypes=(running r suspended s done d)
 function hab_prompt_precmd () {
-  promptinfo=(files ❖ duration ❖)
-  async_job hab_prompt hab_prompt_run ${PWD} precmd ${timer} ${epochtime}
-  timer=()
-  local jobs=''
-  for type in ${(k)jobtypes}; do
-    count=${(Mw)#jobstates#${type}}
-    if [[ $count > 0 ]]; then
-      jobs="${count}${jobtypes[$type]}${jobs}"
-    fi
-  done
-  job_counts=${jobs:+" %{$fg[magenta]%}‹$jobs›%{$reset_color%}"}
-
-  environment_indicator="$sandbox"
-  if [[ -n $VIRTUAL_ENV ]]; then
-    local venv_name=$(basename "$VIRTUAL_ENV")
-    environment_indicator="${environment_indicator:+$environment_indicator }${venv_name}"
-  fi
-  environment_indicator=${environment_indicator:+"%{$fg[magenta]$environment_indicator%}%{$reset_color%} "}
+    promptinfo=(files ❖ duration ❖)
+    async_job hab_prompt hab_prompt_run ${PWD} precmd ${timer} ${epochtime}
+    timer=()
+    local jobs=''
+    for type in ${(k)jobtypes}; do
+	count="${(Mw)#jobstates#${type}}"
+	if [[ $count > 0 ]]; then
+	    jobs="${count}${jobtypes[$type]}${jobs}"
+	fi
+    done
+    job_counts=${jobs:+" %{$fg[magenta]%}‹$jobs›%{$reset_color%}"}
 }
 add-zsh-hook precmd hab_prompt_precmd
 
@@ -78,6 +70,6 @@ ZSH_THEME_VC_PROMPT_SUFFIX="»%{$reset_color%}"
 VIRTUAL_ENV_DISABLE_PROMPT=1
 
 PROMPT="
-╭── \${environment_indicator}${current_dir}: ${dircount}${vc_info}${return_code}
+╭── ${current_dir}: ${dircount}${vc_info}${return_code}
 ╰─ ${user_host} %{$fg[blue]%}${prompt_char}%{$reset_color%} "
 RPROMPT="\${job_counts}"
