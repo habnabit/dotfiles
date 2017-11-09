@@ -1,4 +1,3 @@
-use ansi_term;
 use byteorder;
 use hsl::HSL;
 use rand;
@@ -82,11 +81,6 @@ impl HslExt for HSL {
     }
 }
 
-fn color_of_hsl(color: HSL) -> ansi_term::Color {
-    let (r, g, b) = color.to_rgb();
-    ansi_term::Color::RGB(r, g, b)
-}
-
 fn color_and_opposite_by_direness(base: HSL) -> (HSL, HSL) {
     let opposite = base.rotate(180.0);
     if base.h <= 60.0 || base.h >= 240.0 {
@@ -97,7 +91,7 @@ fn color_and_opposite_by_direness(base: HSL) -> (HSL, HSL) {
     }
 }
 
-pub fn make_theme(input: &str) -> BTreeMap<&'static str, String> {
+pub fn make_theme(input: &str) -> BTreeMap<&'static str, HSL> {
     use rand::distributions::{Range, IndependentSample};
     let mut rng = rng_of_str(input);
     let base = HSL {
@@ -109,19 +103,13 @@ pub fn make_theme(input: &str) -> BTreeMap<&'static str, String> {
     let vcs = base.rotate(240.0);
     let (good_exit, bad_exit) = color_and_opposite_by_direness(cwd);
     let mut ret = <BTreeMap<_, _> as Default>::default();
-    {
-        let mut add = |name, hsl| {
-            let color = color_of_hsl(hsl).normal().prefix();
-            ret.insert(name, format!("{}", color));
-        };
-        add("username", base);
-        add("hostname", base.lighten(-0.2));
-        add("prompt_char", base.rotate(-60.0));
-        add("rprompt", base.rotate(-60.0).lighten(-0.2));
-        add("cwd", cwd);
-        add("good_exit", good_exit);
-        add("bad_exit", bad_exit);
-        add("vcs", vcs);
-    }
+    ret.insert("username", base);
+    ret.insert("hostname", base.lighten(-0.2));
+    ret.insert("prompt_char", base.rotate(-60.0));
+    ret.insert("rprompt", base.rotate(-60.0).lighten(-0.2));
+    ret.insert("cwd", cwd);
+    ret.insert("good_exit", good_exit);
+    ret.insert("bad_exit", bad_exit);
+    ret.insert("vcs", vcs);
     ret
 }
