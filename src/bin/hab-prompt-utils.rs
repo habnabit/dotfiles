@@ -1,6 +1,9 @@
 #[macro_use] extern crate clap;
+#[macro_use] extern crate serde_json;
+extern crate ansi_term;
 extern crate futures;
 extern crate helper_bins;
+extern crate hsl;
 extern crate tokio_core;
 
 use std::collections::BTreeMap;
@@ -8,6 +11,7 @@ use std::io::stdout;
 use std::{path, process, time};
 
 use futures::Future;
+use hsl::HSL;
 
 use helper_bins::colors::{colorhash, make_theme, parse_and_colorhash};
 use helper_bins::directories::file_count;
@@ -49,6 +53,50 @@ fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>, test_vc_dir:
             Ok(results)
         });
     Box::new(ret)
+}
+
+fn stringify_theme(theme: BTreeMap<&'static str, HSL>, format: Option<&str>) -> Result<String> {
+    Ok(match format {
+        Some("zsh") => {
+            let theme_ansi = theme.into_iter()
+                .map(|(k, v)| (k, ansi_of_hsl(v)))
+                .collect::<BTreeMap<_, _>>();
+            zsh_map_string(&theme_ansi)
+        },
+        Some("json") => {
+            let theme_json: serde_json::Value = theme.into_iter()
+                .map(|(k, v)| (k.into(), json_of_hsl(v)))
+                .collect::<serde_json::map::Map<String, _>>()
+                .into();
+            serde_json::to_string(&theme_json).unwrap()  // XXX
+        },
+        _ => {
+            let mut out = String::new();
+            for (k, v) in theme {
+                use std::fmt::Write;
+                write!(out, "{}: {:?}\n", k, v)?;
+            }
+            out
+        },
+    })
+}
+
+fn ansi_of_hsl(color: HSL) -> String {
+    let (r, g, b) = color.to_rgb();
+    let ansi_color = ansi_term::Color::RGB(r, g, b);
+    format!("{}", ansi_color.normal().prefix())
+}
+
+fn json_of_hsl(color: HSL) -> serde_json::Value {
+    let (r, g, b) = color.to_rgb();
+    json!({
+        "h": color.h,
+        "s": color.s,
+        "l": color.l,
+        "r": r,
+        "g": g,
+        "b": b,
+    })
 }
 
 fn zsh_map_string(map: &BTreeMap<&'static str, String>) -> String {
@@ -124,6 +172,7 @@ fn main() {
          (@subcommand color_theme =>
           (aliases: &["color-theme"])
           (about: "Hash a value into a 24-bit color theme")
+          (@arg format: -f --format +takes_value "Set the output format (zsh, json)")
           (@arg STRING: +required)
          )
          (@subcommand ssh_proxy =>
@@ -167,7 +216,8 @@ fn main() {
     } else if let Some(m) = matches.subcommand_matches("color_theme") {
         let the_string = m.value_of("STRING").unwrap();
         let theme = make_theme(the_string);
-        actually_emit(zsh_map_string(&theme), true)
+        stringify_theme(theme, m.value_of("format"))
+            .and_then(|s| actually_emit(s, true))
     } else if let Some(m) = matches.subcommand_matches("ssh_proxy") {
         let host = m.value_of("HOST").unwrap();
         let port = m.value_of("PORT").unwrap();
