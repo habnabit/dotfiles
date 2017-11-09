@@ -1,11 +1,15 @@
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 
-extern crate capnp;
-#[macro_use] extern crate capnp_rpc;
-#[macro_use] extern crate clap;
-#[macro_use] extern crate futures;
 #[macro_use] extern crate lazy_static;
+extern crate ansi_term;
+extern crate byteorder;
+extern crate capnp;
+extern crate capnp_rpc;
+extern crate clap;
+extern crate futures;
+extern crate hsl;
+extern crate rand;
 extern crate regex;
 extern crate sha1;
 extern crate tempfile;
