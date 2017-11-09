@@ -8,14 +8,18 @@ publish = false
 [features]
 
 [dependencies]
-capnp = "0.8"
-capnp-rpc = "0.8"
-clap = {version = "2.5.2", features = ["unstable"]}
+ansi_term = "*"
+byteorder = "*"
+capnp = "*"
+capnp-rpc = "*"
+clap = {version = "*", features = ["unstable"]}
 futures = "*"
-lazy_static = "0.2.1"
-regex = "0.1.73"
-sha1 = "0.1.1"
-tempfile = "2.1.4"
+hsl = "*"
+lazy_static = "*"
+rand = "*"
+regex = "*"
+sha1 = "*"
+tempfile = "*"
 tokio-core = "*"
 tokio-process = "*"
 

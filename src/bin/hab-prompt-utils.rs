@@ -9,7 +9,7 @@ use std::{path, process, time};
 
 use futures::Future;
 
-use helper_bins::colors::colorhash;
+use helper_bins::colors::{colorhash, make_theme, parse_and_colorhash};
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
 use helper_bins::errors::{PromptErrors, PromptResult as Result};
@@ -51,19 +51,24 @@ fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>, test_vc_dir:
     Box::new(ret)
 }
 
+fn zsh_map_string(map: &BTreeMap<&'static str, String>) -> String {
+    let mut ret: String = Default::default();
+    for (k, v) in map {
+        ret.push_str(k);
+        ret.push('\0');
+        ret.push_str(v);
+        ret.push('\0');
+    }
+    ret.pop();
+    ret
+}
+
 fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> Box<Future<Item=(), Error=PromptErrors>>
 {
     let ret = zsh_precmd_map(timers, test_vc_dir)
         .and_then(|map| {
-            let mut bytes: Vec<u8> = vec![];
-            for (k, v) in &map {
-                bytes.extend(k.as_bytes());
-                bytes.push(0);
-                bytes.extend(v.as_bytes());
-                bytes.push(0);
-            }
-            bytes.pop();
-            tokio_core::io::write_all(stdout(), bytes)
+            let map_str = zsh_map_string(&map);
+            tokio_core::io::write_all(stdout(), map_str.into_bytes())
                 .map_err(Into::into)
         })
         .map(|_| ());
@@ -105,6 +110,7 @@ fn main() {
            (about: "Hash a value into a 256-color number")
            (@arg STRING: +required)
            (@arg allow_all_colors: -a --allow_all_colors "Don't filter out hard-to-read colors")
+           (@arg parse: -p --parse "Parse a string for multiple things to hash")
           )
           (@subcommand git_head_branch =>
            (aliases: &["git-head-branch"])
@@ -114,6 +120,11 @@ fn main() {
          (@subcommand precmd =>
           (about: "Do everything the zsh precmd would need")
           (@arg TIMERS: ...)
+         )
+         (@subcommand color_theme =>
+          (aliases: &["color-theme"])
+          (about: "Hash a value into a 24-bit color theme")
+          (@arg STRING: +required)
          )
          (@subcommand ssh_proxy =>
           (aliases: &["ssh-proxy"])
@@ -135,9 +146,13 @@ fn main() {
         } else if let Some(_) = m.subcommand_matches("file_count") {
             file_count()
         } else if let Some(m) = m.subcommand_matches("color_hash") {
-            use std::os::unix::ffi::OsStrExt;
-            colorhash(m.value_of_os("STRING").unwrap().as_bytes(),
-                      m.is_present("allow_all_colors"))
+            let the_string = m.value_of("STRING").unwrap();
+            let allow_all = m.is_present("allow_all_colors");
+            Ok(if m.is_present("parse") {
+                parse_and_colorhash(the_string, allow_all)
+            } else {
+                colorhash(the_string.as_bytes(), allow_all)
+            })
         } else if let Some(_) = m.subcommand_matches("git_head_branch") {
             run_in_loop(git_head_branch)
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
@@ -149,6 +164,10 @@ fn main() {
             Some((before, after))
         } else { None };
         run_in_loop(move |test_vc_dir| zsh_precmd(durations, test_vc_dir))
+    } else if let Some(m) = matches.subcommand_matches("color_theme") {
+        let the_string = m.value_of("STRING").unwrap();
+        let theme = make_theme(the_string);
+        actually_emit(zsh_map_string(&theme), true)
     } else if let Some(m) = matches.subcommand_matches("ssh_proxy") {
         let host = m.value_of("HOST").unwrap();
         let port = m.value_of("PORT").unwrap();

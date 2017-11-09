@@ -45,10 +45,10 @@ fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
         None => return Err(PromptErrors::InvalidSshProxy(host.to_owned())),
     };
     let host = matches.name("host").unwrap();
-    let target = if let Some(j) = matches.name("jail") { SshProxyTarget::Jail(j) }
-    else if let Some(v) = matches.name("via") { SshProxyTarget::Via(v) }
+    let target = if let Some(j) = matches.name("jail") { SshProxyTarget::Jail(j.as_str()) }
+    else if let Some(v) = matches.name("via") { SshProxyTarget::Via(v.as_str()) }
     else { unreachable!() };
-    Ok((target, host))
+    Ok((target, host.as_str()))
 }
 
 pub fn ssh_proxy_command(host: &str, port: &str, args: Option<&mut Iterator<Item=&OsStr>>) -> Result<process::Command>
