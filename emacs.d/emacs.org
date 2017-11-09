@@ -151,6 +151,7 @@ Install packages
 
   (when (executable-find "pyls")
     (use-package lsp-python
+      :ensure t
       :after python
       :config
       (add-hook 'python-mode-hook #'lsp-mode)))
@@ -160,17 +161,20 @@ Install packages
 
   (when (eq hab/rust-backend 'racer)
     (use-package racer
+      :ensure t
       :after rust-mode
       :config
       (add-hook 'rust-mode-hook #'hab/racer-init)
       (add-hook 'racer-mode-hook #'eldoc-mode))
     (use-package flycheck-rust
+      :ensure t
       :after rust-mode
       :config
       (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)))
 
   (when (eq hab/rust-backend 'lsp-mode-rls)
     (use-package lsp-rust
+      :ensure t
       :after rust-mode
       :config
       (add-hook 'rust-mode-hook #'lsp-mode)))
