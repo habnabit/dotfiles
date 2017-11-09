@@ -28,6 +28,28 @@
 
   (eval-when-compile
     (require 'use-package))
+
+  (setq custom-file "~/.emacs.d/custom.el")
+  (load custom-file)
+
+#+END_SRC
+
+Load local config.
+
+#+BEGIN_SRC emacs-lisp
+  (defcustom hab/compy-specific-elisp (concat user-emacs-directory "compy-specific.org")
+    "Computer-local elisp to load."
+    :group 'hab)
+
+  (when (file-exists-p hab/compy-specific-elisp)
+    (org-babel-load-file hab/compy-specific-elisp))
+
+  (defun hab/fix-path ()
+    (interactive)
+    (setenv "PATH" (mapconcat 'identity exec-path ":")))
+
+  (hab/fix-path)
+
 #+END_SRC
 
 ** More interesting work
@@ -42,6 +64,26 @@ Decide if git should be used
     "Load git mode packages?"
     :group 'hab
     :type 'boolean)
+#+END_SRC
+
+Rust pre-configuration
+
+#+BEGIN_SRC emacs-lisp
+  (defcustom hab/rust-backend nil
+    "Which rust backend to use."
+    :group 'hab
+    :type
+    '(choice (const :tag "None" nil)
+             (const :tag "racer" racer)
+             (const :tag "rls via lsp-mode" lsp-mode-rls)))
+
+  (defun hab/racer-init ()
+    "Initialize racer's RUST_SRC_PATH for the buffer."
+    (interactive)
+    (let ((sysroot (string-trim-right (shell-command-to-string "rustc +nightly --print sysroot"))))
+      (setq-local racer-rust-src-path (concat sysroot "/lib/rustlib/src/rust/src")))
+    (racer-mode))
+
 #+END_SRC
 
 Install packages
@@ -73,6 +115,11 @@ Install packages
                (load-theme 'solarized-dark t)
                (global-hl-line-mode 1))
 
+  (use-package emojify
+    :ensure t
+    :config
+    (global-emojify-mode))
+
   (use-package rainbow-delimiters
                :ensure t
                :config
@@ -86,16 +133,41 @@ Install packages
                :config
                (helm-mode 1))
 
+  (use-package lsp-mode
+               :config
+               (require 'lsp-flycheck))
+
+  (use-package python-mode
+    :mode ("\\.tac\\'" . python-mode))
+
+  (when (executable-find "pyls")
+    (use-package lsp-python
+      :after python
+      :config
+      (add-hook 'python-mode-hook #'lsp-mode)))
+
   (use-package rust-mode
-               :mode ("\\.rs\\'" . rust-mode))
+    :mode ("\\.rs\\'" . rust-mode))
+
+  (when (eq hab/rust-backend 'racer)
+    (use-package racer
+      :after rust-mode
+      :config
+      (add-hook 'rust-mode-hook #'hab/racer-init)
+      (add-hook 'racer-mode-hook #'eldoc-mode))
+    (use-package flycheck-rust
+      :after rust-mode
+      :config
+      (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)))
+
+  (when (eq hab/rust-backend 'lsp-mode-rls)
+    (use-package lsp-rust
+      :after rust-mode
+      :config
+      (add-hook 'rust-mode-hook #'lsp-mode)))
 
   (use-package yaml-mode
                :mode ("\\.ya?ml\\'" . yaml-mode))
-
-  (use-package racer
-               :after rust-mode
-               :config
-               (add-hook 'rust-mode-hook #'racer-mode))
 
   (use-package flycheck
                :bind
@@ -109,13 +181,15 @@ Install packages
                :bind
                (("C-c ! h" . helm-flycheck)))
 
-  (use-package flycheck-rust
-               :after rust-mode
-               :config
-               (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
-
   (use-package company
-               :after racer
+               :ensure t
+               :bind
+               (("M-<tab>" . company-complete)
+                ("M-/" . company-complete)
+                :map company-active-map
+                ("<tab>" . company-complete-common-or-cycle)
+                ("<backtab>" . company-select-previous)
+                ("<spc>" . company-complete-selection))
                :config
                (setq company-global-modes '(not org-mode))
                (global-company-mode t))
@@ -153,8 +227,9 @@ Reconfigure defaults
         (concat user-temporary-file-directory ".auto-saves-")
         auto-save-file-name-transforms
         `((".*" ,user-temporary-file-directory t))
-        custom-file "~/.emacs.d/custom.el"
         uniquify-buffer-name-style 'forward)
+
+  ;(desktop-save-mode 1)
 
   (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
@@ -199,24 +274,6 @@ Reconfigure defaults
 
   (show-paren-mode t)
   (column-number-mode)
-#+END_SRC
-
-Load local config.
-
-#+BEGIN_SRC emacs-lisp
-  (defcustom hab/compy-specific-elisp (concat user-emacs-directory "compy-specific.org")
-    "Computer-local elisp to load."
-    :group 'hab)
-
-  (when (file-exists-p hab/compy-specific-elisp)
-    (org-babel-load-file hab/compy-specific-elisp))
-
-  (defun hab/fix-path ()
-    (interactive)
-    (setenv "PATH" (mapconcat 'identity exec-path ":")))
-
-  (hab/fix-path)
-
 #+END_SRC
 
 Start the server.
