@@ -5,6 +5,10 @@ authors = ["Aaron Gallagher <_@habnab.it>"]
 build = "build.rs"
 publish = false
 
+[profile.release]
+lto = true
+panic = 'abort'
+
 [features]
 
 [dependencies]
