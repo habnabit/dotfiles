@@ -16,7 +16,6 @@ use super::plugins_capnp::{file_counts, version_control_plugin};
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
 const GIT_WORKING_STATII: &'static str = "TMD";
-const HG_STATII: &'static str = "MAR?";
 const STATUS_ORDER: &'static str = "UTMADRCtmd?";
 
 fn tolower(c: char) -> char {
@@ -312,7 +311,9 @@ fn update_counts_hg(counts: &mut BTreeMap<char, usize>, line: &str) {
         return;
     }
     match chars[0] {
-        c if HG_STATII.contains(c) => counts.increment(tolower(c)),
+        'M' | '?' => counts.increment(tolower(chars[0])),
+        'A' => counts.increment('A'),
+        'R' => counts.increment('d'),
         _ => (),
     }
 }
