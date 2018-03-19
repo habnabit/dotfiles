@@ -27,12 +27,10 @@ sha1 = "*"
 tempfile = "*"
 tokio-core = "*"
 tokio-process = "*"
+tokio-service = "*"
 
 # maybe later
 # git2 = {version = "0.4.3", default-features = false}
-
-[dependencies.tokio-service]
-git = "https://github.com/tokio-rs/tokio-service"
 
 [build-dependencies]
 capnpc = "*"
