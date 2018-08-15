@@ -54,6 +54,7 @@ export OCAMLRUNPARAM=b
 
 export EDITOR="$(which emacsclient) --alternate-editor ex"
 alias e="${EDITOR} --no-wait"
+alias magit="${HOME}/.dotfiles/emacs.d/emacsclient-magit.el"
 alias HEAD="curl --head"
 alias pc="passacre generate -c"
 alias pcc="pc -C"
