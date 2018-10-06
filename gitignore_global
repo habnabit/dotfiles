@@ -11,7 +11,8 @@ _aptx_configuration_file
 __pycache__
 dropin.cache
 .ropeproject
-*.egg-info
+*.egg*
 .coverage
 htmlcov
 .cargo
+.vscode
