@@ -142,10 +142,6 @@ Install packages
                :config
                (helm-mode 1))
 
-  (use-package lsp-mode
-               :config
-               (require 'lsp-flycheck))
-
   (use-package python-mode
     :mode ("\\.tac\\'" . python-mode))
 
