@@ -72,7 +72,7 @@ impl GitRequest {
         let child = self.command_setup()
             .arg("status").arg("--porcelain")
             .stdout(process::Stdio::piped())
-            .spawn_async(&self.handle);
+            .spawn_async();
         let ret = future::done(child)
             .map_err(Into::into)
             .and_then(|mut c| {
@@ -88,7 +88,7 @@ impl GitRequest {
             .arg("symbolic-ref").arg("HEAD")
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::null())
-            .spawn_async(&self.handle);
+            .spawn_async();
         let ret = future::done(child)
             .and_then(|c| c.wait_with_output())
             .map_err(Into::into)
@@ -112,7 +112,7 @@ impl GitRequest {
             .arg("show").arg("--pretty=%h").arg("-s")
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::null())
-            .spawn_async(&self.handle);
+            .spawn_async();
         let ret = future::done(child)
             .and_then(|c| c.wait_with_output())
             .map_err(Into::into)
@@ -208,7 +208,7 @@ impl HgRequest {
         let child = self.command_setup()
             .arg("status")
             .stdout(process::Stdio::piped())
-            .spawn_async(&self.handle);
+            .spawn_async();
         let ret = future::done(child)
             .map_err(Into::into)
             .and_then(|mut c| {
@@ -224,7 +224,7 @@ impl HgRequest {
             .arg("id").arg("-bn")
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::null())
-            .spawn_async(&self.handle);
+            .spawn_async();
         let ret = future::done(child)
             .and_then(|c| c.wait_with_output())
             .map_err(Into::into)
@@ -323,7 +323,7 @@ fn write_counts(mut counts_builder: file_counts::Builder, counts: &BTreeMap<char
     let mut entries = counts_builder.init_entries(counts.len() as u32);
     let mut buf = String::new();
     for (e, (&k, &v)) in counts.into_iter().enumerate() {
-        let mut entry = entries.borrow().get(e as u32);
+        let mut entry = entries.reborrow().get(e as u32);
         buf.clear();
         buf.push(k);
         entry.set_file_type(&buf);

@@ -1,3 +1,4 @@
+#![allow(bare_trait_objects, deprecated, unused_parens)]
 #[macro_use] extern crate clap;
 #[macro_use] extern crate serde_json;
 extern crate ansi_term;
@@ -13,7 +14,7 @@ use std::{path, process, time};
 use futures::Future;
 use hsl::HSL;
 
-use helper_bins::colors::{colorhash, make_theme, parse_and_colorhash};
+use helper_bins::colors::make_theme;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
 use helper_bins::errors::{PromptErrors, PromptResult as Result};
@@ -153,13 +154,6 @@ fn main() {
            (aliases: &["file-count"])
            (about: "Count the number of files in the current directory")
           )
-          (@subcommand color_hash =>
-           (aliases: &["color-hash"])
-           (about: "Hash a value into a 256-color number")
-           (@arg STRING: +required)
-           (@arg allow_all_colors: -a --allow_all_colors "Don't filter out hard-to-read colors")
-           (@arg parse: -p --parse "Parse a string for multiple things to hash")
-          )
           (@subcommand git_head_branch =>
            (aliases: &["git-head-branch"])
            (about: "Find the branch associated with the git HEAD")
@@ -194,14 +188,6 @@ fn main() {
             run_in_loop(vc_status)
         } else if let Some(_) = m.subcommand_matches("file_count") {
             file_count()
-        } else if let Some(m) = m.subcommand_matches("color_hash") {
-            let the_string = m.value_of("STRING").unwrap();
-            let allow_all = m.is_present("allow_all_colors");
-            Ok(if m.is_present("parse") {
-                parse_and_colorhash(the_string, allow_all)
-            } else {
-                colorhash(the_string.as_bytes(), allow_all)
-            })
         } else if let Some(_) = m.subcommand_matches("git_head_branch") {
             run_in_loop(git_head_branch)
         } else { return }.and_then(|s| actually_emit(s, m.is_present("no_newline")))
