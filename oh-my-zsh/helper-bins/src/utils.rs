@@ -30,8 +30,8 @@ pub fn format_counts(
 
 pub fn btree_of_counts(counts: &file_counts::Reader) -> Result<BTreeMap<char, usize>> {
     let mut btree = BTreeMap::new();
-    for entry in try!(counts.get_entries()).iter() {
-        let mut chars = try!(entry.get_file_type()).chars();
+    for entry in counts.get_entries()?.iter() {
+        let mut chars = entry.get_file_type()?.chars();
         // XXX error handling?
         let c = chars.next().unwrap();
         *btree.entry(c).or_insert(0) += entry.get_count() as usize;
@@ -49,7 +49,7 @@ where
         if e >= ITERATION_LIMIT {
             return Ok(true);
         }
-        try!(func(item));
+        func(item)?;
     }
     Ok(false)
 }
@@ -81,7 +81,7 @@ where
         alloc: A, r: <T as ::capnp::traits::Owned<'b>>::Reader,
     ) -> ::std::result::Result<OwnedMessage<T, A>, ::capnp::Error> {
         let mut message = ::capnp::message::Builder::new(alloc);
-        try!(message.set_root(r));
+        message.set_root(r)?;
         Ok(OwnedMessage {
             message: message,
             phantom: ::std::marker::PhantomData,
@@ -106,7 +106,7 @@ where
     ) -> ::std::result::Result<OwnedMessage<T, ::capnp::message::HeapAllocator>, ::capnp::Error>
     {
         let mut message = ::capnp::message::Builder::new_default();
-        try!(message.set_root(r));
+        message.set_root(r)?;
         Ok(OwnedMessage {
             message: message,
             phantom: ::std::marker::PhantomData,

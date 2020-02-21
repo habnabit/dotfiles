@@ -29,9 +29,9 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     use std::io::Write;
     let stdout_ = stdout();
     let mut stdout_locked = stdout_.lock();
-    try!(stdout_locked.write_all(&s.as_bytes()[..]));
+    stdout_locked.write_all(&s.as_bytes()[..])?;
     if !no_newline {
-        try!(stdout_locked.write_all(b"\n"));
+        stdout_locked.write_all(b"\n")?;
     }
     Ok(())
 }
@@ -47,7 +47,7 @@ fn zsh_precmd_map(
         } else {
             results.insert("duration", "—".to_string());
         }
-        results.insert("files", try!(file_count()));
+        results.insert("files", file_count()?);
         Ok(results)
     });
     let ret = ret
@@ -133,7 +133,7 @@ fn run_in_loop<F, T>(func: F) -> Result<T>
 where
     F: FnOnce(TestVcDirService) -> BoxFuture<T>,
 {
-    let mut lp = try!(tokio_core::reactor::Core::new());
+    let mut lp = tokio_core::reactor::Core::new()?;
     let fut = PluginLoader::new(lp.handle())
         .load_builtin_plugins()
         .load_plugins()
@@ -224,11 +224,10 @@ fn main() {
             if m.is_present("dry_run") {
                 use std::io::Write;
                 let stdout_ = stdout();
-                try!(write!(stdout_.lock(), "would run: {:?}\n", c));
+                write!(stdout_.lock(), "would run: {:?}\n", c)?;
             } else {
-                try!(c
-                    .status()
-                    .and_then(|e| process::exit(e.code().unwrap_or(1))));
+                c.status()
+                    .and_then(|e| process::exit(e.code().unwrap_or(1)))?;
             }
             Ok(())
         })

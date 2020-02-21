@@ -61,7 +61,7 @@ fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
 pub fn ssh_proxy_command(
     host: &str, port: &str, args: Option<&mut dyn Iterator<Item = &OsStr>>,
 ) -> Result<process::Command> {
-    let (target, host) = try!(parse_ssh_proxy_host(host));
+    let (target, host) = parse_ssh_proxy_host(host)?;
     let ssh_cmd = if let Ok(ssh) = env::var("SSH_PROXY_SSH") {
         Cow::Owned(ssh)
     } else {

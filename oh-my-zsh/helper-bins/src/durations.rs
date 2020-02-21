@@ -39,7 +39,7 @@ impl fmt::Display for PrettyDuration {
                 continue;
             }
             secs %= unit_secs;
-            try!(write!(
+            write!(
                 f,
                 "{}{}{}",
                 {
@@ -51,17 +51,17 @@ impl fmt::Display for PrettyDuration {
                 },
                 unit_count,
                 unit
-            ));
+            )?;
             written_first = true;
         }
         if written_first {
             if secs > 0 {
-                try!(write!(f, " {}s", secs));
+                write!(f, " {}s", secs)?;
             }
         } else {
             let fsecs = secs as f64 + (self.0.subsec_nanos() as f64 / 1_000_000_000.);
             let prec = f.precision().unwrap_or(2);
-            try!(write!(f, "{:.*}s", prec, SigFigFloat(fsecs)));
+            write!(f, "{:.*}s", prec, SigFigFloat(fsecs))?;
         }
         Ok(())
     }
