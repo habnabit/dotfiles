@@ -2,7 +2,8 @@
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate ansi_term;
 extern crate blake2;
 extern crate byteorder;
@@ -23,7 +24,6 @@ pub mod plugins_capnp {
     include!(concat!(env!("OUT_DIR"), "/plugins_capnp.rs"));
 }
 
-mod term;
 pub mod colors;
 pub mod directories;
 pub mod durations;
@@ -31,5 +31,6 @@ pub mod errors;
 pub mod installer;
 pub mod plugins;
 pub mod ssh_proxy;
+mod term;
 pub mod utils;
 pub mod vc;

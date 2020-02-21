@@ -16,15 +16,15 @@ impl<'a> SshProxyTarget<'a> {
         use self::SshProxyTarget::*;
         match self {
             Jail(jail) => {
-                cmd
-                    .arg(host)
-                    .arg("sudo").arg("jexec").arg(jail)
-                    .arg("sshd").arg("-i");
+                cmd.arg(host)
+                    .arg("sudo")
+                    .arg("jexec")
+                    .arg(jail)
+                    .arg("sshd")
+                    .arg("-i");
             },
             Via(target) => {
-                cmd
-                    .arg("-W").arg(format!("{}:{}", target, port))
-                    .arg(host);
+                cmd.arg("-W").arg(format!("{}:{}", target, port)).arg(host);
             },
         }
         cmd
@@ -32,11 +32,14 @@ impl<'a> SshProxyTarget<'a> {
 }
 
 lazy_static! {
-    static ref SSH_PROXY_PATTERN: regex::Regex = regex::Regex::new(r"(?ix)
+    static ref SSH_PROXY_PATTERN: regex::Regex = regex::Regex::new(
+        r"(?ix)
         \A(?:(?P<jail>[a-zA-Z0-9_-]+) \._jails
             |(?P<via> [a-zA-Z0-9.-]+) \._via
         )\.(?P<host>  [a-zA-Z0-9._-]+)\z
-    ").unwrap();
+    "
+    )
+    .unwrap();
 }
 
 fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
@@ -45,14 +48,19 @@ fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
         None => return Err(PromptErrors::InvalidSshProxy(host.to_owned())),
     };
     let host = matches.name("host").unwrap();
-    let target = if let Some(j) = matches.name("jail") { SshProxyTarget::Jail(j.as_str()) }
-    else if let Some(v) = matches.name("via") { SshProxyTarget::Via(v.as_str()) }
-    else { unreachable!() };
+    let target = if let Some(j) = matches.name("jail") {
+        SshProxyTarget::Jail(j.as_str())
+    } else if let Some(v) = matches.name("via") {
+        SshProxyTarget::Via(v.as_str())
+    } else {
+        unreachable!()
+    };
     Ok((target, host.as_str()))
 }
 
-pub fn ssh_proxy_command(host: &str, port: &str, args: Option<&mut dyn Iterator<Item=&OsStr>>) -> Result<process::Command>
-{
+pub fn ssh_proxy_command(
+    host: &str, port: &str, args: Option<&mut dyn Iterator<Item = &OsStr>>,
+) -> Result<process::Command> {
     let (target, host) = try!(parse_ssh_proxy_host(host));
     let ssh_cmd = if let Ok(ssh) = env::var("SSH_PROXY_SSH") {
         Cow::Owned(ssh)

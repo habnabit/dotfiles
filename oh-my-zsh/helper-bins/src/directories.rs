@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use super::errors::PromptResult as Result;
-use super::utils::{IncrementalMap, format_counts, limited_foreach};
+use super::utils::{format_counts, limited_foreach, IncrementalMap};
 
 const FILE_ORDER: &'static str = ".-/l?";
 

@@ -27,11 +27,7 @@ impl fmt::Display for SigFigFloat {
 
 pub struct PrettyDuration(pub time::Duration);
 
-const TIME_UNITS: [(&'static str, u64); 3] = [
-    ("d", 60 * 60 * 24),
-    ("h", 60 * 60),
-    ("m", 60),
-];
+const TIME_UNITS: [(&'static str, u64); 3] = [("d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60)];
 
 impl fmt::Display for PrettyDuration {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -43,7 +39,19 @@ impl fmt::Display for PrettyDuration {
                 continue;
             }
             secs %= unit_secs;
-            try!(write!(f, "{}{}{}", {if written_first {" "} else {""}}, unit_count, unit));
+            try!(write!(
+                f,
+                "{}{}{}",
+                {
+                    if written_first {
+                        " "
+                    } else {
+                        ""
+                    }
+                },
+                unit_count,
+                unit
+            ));
             written_first = true;
         }
         if written_first {
@@ -63,9 +71,9 @@ impl fmt::Display for PrettyDuration {
 mod tests {
     use std::time::Duration;
 
-    use super::{PrettyDuration, float_precision};
+    use super::{float_precision, PrettyDuration};
 
-    parametrize_test!{test_float_precision_formatting, [
+    parametrize_test! {test_float_precision_formatting, [
         (v: f64, s: usize, r: &'static str),
         (100.,      2, "100"),
         ( 10.,      2, "10"),
@@ -94,7 +102,7 @@ mod tests {
         assert_eq!(format!("{:.*}", float_precision(v, s), v), r);
     }}
 
-    parametrize_test!{test_pretty_duration, [
+    parametrize_test! {test_pretty_duration, [
         (s: u64, n: u32, r: &'static str),
         (0, 0, "0s"),
         (0, 234_000_000, "0.23s"),

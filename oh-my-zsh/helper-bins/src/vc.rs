@@ -4,15 +4,15 @@ use std::{env, path, process};
 
 use capnp;
 use capnp::capability::Promise;
-use futures::{Future, future};
+use futures::{future, Future};
 use tokio_core::reactor::Handle;
 use tokio_process::CommandExt;
 use tokio_service::Service;
 
 use super::errors::{PromptErrors, PromptResult as Result};
-use super::utils::{IncrementalMap, btree_of_counts, format_counts};
 use super::plugins::{BoxFuture, TestVcDirService, VcStatus};
 use super::plugins_capnp::{file_counts, version_control_plugin};
+use super::utils::{btree_of_counts, format_counts, IncrementalMap};
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
 const GIT_WORKING_STATII: &'static str = "TMD";
@@ -22,27 +22,35 @@ fn tolower(c: char) -> char {
     c.to_lowercase().next().unwrap()
 }
 
-fn status_inner_loop<F: 'static, T: 'static>(reader: T, mut updater: F, buf: Vec<u8>, mut ret: BTreeMap<char, usize>) -> BoxFuture<BTreeMap<char, usize>>
-    where F: FnMut(&mut BTreeMap<char, usize>, &str),
-          T: BufRead,
+fn status_inner_loop<F: 'static, T: 'static>(
+    reader: T, mut updater: F, buf: Vec<u8>, mut ret: BTreeMap<char, usize>,
+) -> BoxFuture<BTreeMap<char, usize>>
+where
+    F: FnMut(&mut BTreeMap<char, usize>, &str),
+    T: BufRead,
 {
     let ret = ::tokio_core::io::read_until(reader, b'\n', buf)
         .map_err(Into::into)
-        .and_then(move |(reader, mut buf)| -> BoxFuture<BTreeMap<char, usize>> {
-            match ::std::str::from_utf8(&buf) {
-                Err(e) => return Box::new(future::err(e.into())),
-                Ok("") => return Box::new(future::ok(ret)),
-                Ok(line) => updater(&mut ret, line),
-            }
-            buf.clear();
-            status_inner_loop(reader, updater, buf, ret)
-        });
+        .and_then(
+            move |(reader, mut buf)| -> BoxFuture<BTreeMap<char, usize>> {
+                match ::std::str::from_utf8(&buf) {
+                    Err(e) => return Box::new(future::err(e.into())),
+                    Ok("") => return Box::new(future::ok(ret)),
+                    Ok(line) => updater(&mut ret, line),
+                }
+                buf.clear();
+                status_inner_loop(reader, updater, buf, ret)
+            },
+        );
     Box::new(ret)
 }
 
-fn status_line_loop<F: 'static, T: 'static>(reader: T, updater: F) -> BoxFuture<BTreeMap<char, usize>>
-    where F: FnMut(&mut BTreeMap<char, usize>, &str),
-          T: BufRead,
+fn status_line_loop<F: 'static, T: 'static>(
+    reader: T, updater: F,
+) -> BoxFuture<BTreeMap<char, usize>>
+where
+    F: FnMut(&mut BTreeMap<char, usize>, &str),
+    T: BufRead,
 {
     status_inner_loop(reader, updater, vec![], BTreeMap::new())
 }
@@ -69,8 +77,10 @@ impl GitRequest {
     }
 
     fn run_git_status(&self) -> BoxFuture<BTreeMap<char, usize>> {
-        let child = self.command_setup()
-            .arg("status").arg("--porcelain")
+        let child = self
+            .command_setup()
+            .arg("status")
+            .arg("--porcelain")
             .stdout(process::Stdio::piped())
             .spawn_async();
         let ret = future::done(child)
@@ -84,8 +94,10 @@ impl GitRequest {
     }
 
     fn get_git_head_branch(&self) -> BoxFuture<Option<String>> {
-        let child = self.command_setup()
-            .arg("symbolic-ref").arg("HEAD")
+        let child = self
+            .command_setup()
+            .arg("symbolic-ref")
+            .arg("HEAD")
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::null())
             .spawn_async();
@@ -96,10 +108,12 @@ impl GitRequest {
                 if output.status.success() {
                     let git_ref = from_utf8(output.stdout)?;
                     Ok(Some(
-                        git_ref.as_str()
+                        git_ref
+                            .as_str()
                             .trim_left_matches("refs/heads/")
                             .trim()
-                            .to_string()))
+                            .to_string(),
+                    ))
                 } else {
                     Ok(None)
                 }
@@ -108,8 +122,11 @@ impl GitRequest {
     }
 
     fn get_git_sha(&self) -> BoxFuture<String> {
-        let child = self.command_setup()
-            .arg("show").arg("--pretty=%h").arg("-s")
+        let child = self
+            .command_setup()
+            .arg("show")
+            .arg("--pretty=%h")
+            .arg("-s")
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::null())
             .spawn_async();
@@ -128,12 +145,14 @@ impl GitRequest {
 
     fn fill_all(self, mut results: version_control_plugin::StatusResults) -> BoxFuture<()> {
         let status = self.run_git_status();
-        let ret = self.get_git_head_branch()
+        let ret = self
+            .get_git_head_branch()
             .and_then(move |o| -> BoxFuture<(Option<String>, String)> {
                 match o {
                     Some(s) => Box::new(future::ok((Some(s.clone()), s))),
                     None => Box::new(self.get_git_sha().map(|s| (None, s))),
-                }})
+                }
+            })
             .join(status)
             .map(move |((branch_opt, display), counts)| {
                 let mut resp = results.get().init_status().init_some();
@@ -147,13 +166,12 @@ impl GitRequest {
     }
 
     fn fill_branch_only(self, mut results: version_control_plugin::StatusResults) -> BoxFuture<()> {
-        let ret = self.get_git_head_branch()
-            .map(move |branch_opt| {
-                let mut resp = results.get().init_status().init_some();
-                if let Some(branch) = branch_opt {
-                    resp.set_branch(&branch);
-                }
-            });
+        let ret = self.get_git_head_branch().map(move |branch_opt| {
+            let mut resp = results.get().init_status().init_some();
+            if let Some(branch) = branch_opt {
+                resp.set_branch(&branch);
+            }
+        });
         Box::new(ret)
     }
 }
@@ -161,10 +179,10 @@ impl GitRequest {
 pub struct Git(pub Handle);
 
 impl version_control_plugin::Server for Git {
-    fn status(&mut self,
-              params: version_control_plugin::StatusParams,
-              results: version_control_plugin::StatusResults) -> Promise<(), capnp::Error>
-    {
+    fn status(
+        &mut self, params: version_control_plugin::StatusParams,
+        results: version_control_plugin::StatusResults,
+    ) -> Promise<(), capnp::Error> {
         let handle = self.0.clone();
         let ret = future::lazy(move || {
             let params = params.get()?;
@@ -174,16 +192,21 @@ impl version_control_plugin::Server for Git {
             if !is_directory_usable(&vc_dir) {
                 return Ok(None);
             }
-            Ok(Some((params.get_branch_only(), GitRequest {
-                handle: handle,
-                work_dir: work_dir,
-                vc_dir: vc_dir,
-            })))
-        }).and_then(move |o| match o {
+            Ok(Some((
+                params.get_branch_only(),
+                GitRequest {
+                    handle: handle,
+                    work_dir: work_dir,
+                    vc_dir: vc_dir,
+                },
+            )))
+        })
+        .and_then(move |o| match o {
             None => Box::new(future::ok(())),
             Some((true, req)) => req.fill_branch_only(results),
             Some((false, req)) => req.fill_all(results),
-        }).map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
+        })
+        .map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
         Promise::from_future(ret)
     }
 }
@@ -205,7 +228,8 @@ impl HgRequest {
     }
 
     fn run_hg_status(&self) -> BoxFuture<BTreeMap<char, usize>> {
-        let child = self.command_setup()
+        let child = self
+            .command_setup()
             .arg("status")
             .stdout(process::Stdio::piped())
             .spawn_async();
@@ -220,8 +244,10 @@ impl HgRequest {
     }
 
     fn get_hg_branch(&self) -> BoxFuture<String> {
-        let child = self.command_setup()
-            .arg("id").arg("-bn")
+        let child = self
+            .command_setup()
+            .arg("id")
+            .arg("-bn")
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::null())
             .spawn_async();
@@ -240,7 +266,8 @@ impl HgRequest {
     }
 
     fn fill_all(self, mut results: version_control_plugin::StatusResults) -> BoxFuture<()> {
-        let ret = self.get_hg_branch()
+        let ret = self
+            .get_hg_branch()
             .join(self.run_hg_status())
             .map(move |(branch, counts)| {
                 let mut resp = results.get().init_status().init_some();
@@ -255,10 +282,10 @@ impl HgRequest {
 pub struct Hg(pub Handle);
 
 impl version_control_plugin::Server for Hg {
-    fn status(&mut self,
-              params: version_control_plugin::StatusParams,
-              results: version_control_plugin::StatusResults) -> Promise<(), capnp::Error>
-    {
+    fn status(
+        &mut self, params: version_control_plugin::StatusParams,
+        results: version_control_plugin::StatusResults,
+    ) -> Promise<(), capnp::Error> {
         let handle = self.0.clone();
         let ret = future::lazy(move || {
             let params = params.get()?;
@@ -274,11 +301,12 @@ impl version_control_plugin::Server for Hg {
                     vc_dir: vc_dir,
                 }))
             }
-        }).and_then(|o| {
-            o
-                .map(move |req| req.fill_all(results))
+        })
+        .and_then(|o| {
+            o.map(move |req| req.fill_all(results))
                 .unwrap_or_else(|| Box::new(future::ok(())))
-        }).map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
+        })
+        .map_err(|e: PromptErrors| ::capnp::Error::failed(format!("{:?}", e)));
         Promise::from_future(ret)
     }
 }
@@ -290,10 +318,7 @@ fn update_counts_git(counts: &mut BTreeMap<char, usize>, line: &str) {
     }
     match (chars[0], chars[1]) {
         ('?', '?') => counts.increment('?'),
-        ('U', _) |
-        (_, 'U') |
-        ('D', 'D') |
-        ('A', 'A') => counts.increment('U'),
+        ('U', _) | (_, 'U') | ('D', 'D') | ('A', 'A') => counts.increment('U'),
         (i, w) => {
             if GIT_INDEX_STATII.contains(i) {
                 counts.increment(i)
@@ -318,7 +343,9 @@ fn update_counts_hg(counts: &mut BTreeMap<char, usize>, line: &str) {
     }
 }
 
-fn write_counts(mut counts_builder: file_counts::Builder, counts: &BTreeMap<char, usize>, truncated: bool) {
+fn write_counts(
+    mut counts_builder: file_counts::Builder, counts: &BTreeMap<char, usize>, truncated: bool,
+) {
     counts_builder.set_truncated(truncated);
     let mut entries = counts_builder.init_entries(counts.len() as u32);
     let mut buf = String::new();
@@ -336,33 +363,36 @@ fn path_dev(path: &path::Path) -> Result<u64> {
     Ok(path.metadata().map(|m| m.dev())?)
 }
 
-fn vc_root_step(test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf) -> BoxFuture<Option<VcStatus>>
-{
+fn vc_root_step(
+    test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf,
+) -> BoxFuture<Option<VcStatus>> {
     enum Step {
         Done(Result<Option<VcStatus>>),
         TryNext(path::PathBuf),
     }
-    let ret = test_vc_dir.call(cur.clone()).map(move |o| {
-        if let Some(s) = o {
-            Step::Done(Ok(Some(s)))
-        } else if let Some(p) = cur.parent() {
-            match path_dev(p) {
-                Ok(d) if d == top_dev => Step::TryNext(p.into()),
-                Ok(_) => Step::Done(Ok(None)),
-                Err(e) => Step::Done(Err(e.into())),
+    let ret = test_vc_dir
+        .call(cur.clone())
+        .map(move |o| {
+            if let Some(s) = o {
+                Step::Done(Ok(Some(s)))
+            } else if let Some(p) = cur.parent() {
+                match path_dev(p) {
+                    Ok(d) if d == top_dev => Step::TryNext(p.into()),
+                    Ok(_) => Step::Done(Ok(None)),
+                    Err(e) => Step::Done(Err(e.into())),
+                }
+            } else {
+                Step::Done(Ok(None))
             }
-        } else {
-            Step::Done(Ok(None))
-        }
-    }).and_then(move |s| match s {
-        Step::Done(r) => Box::new(future::done(r)),
-        Step::TryNext(p) => vc_root_step(test_vc_dir, top_dev, p),
-    });
+        })
+        .and_then(move |s| match s {
+            Step::Done(r) => Box::new(future::done(r)),
+            Step::TryNext(p) => vc_root_step(test_vc_dir, top_dev, p),
+        });
     Box::new(ret)
 }
 
-fn find_vc_root(test_vc_dir: TestVcDirService) -> BoxFuture<Option<VcStatus>>
-{
+fn find_vc_root(test_vc_dir: TestVcDirService) -> BoxFuture<Option<VcStatus>> {
     let (cwd, top_dev) = match env::current_dir() {
         Ok(cwd) => match path_dev(&cwd) {
             Ok(top_dev) => (cwd, top_dev),
@@ -387,10 +417,20 @@ pub fn vc_status(test_vc_dir: TestVcDirService) -> BoxFuture<String> {
         let mut ret = String::new();
         // XXX less unwrap
         let reader = status.results.get_root_as_reader();
-        write!(ret, "{} {}", status.vc_name, reader.get_display_branch().unwrap()).unwrap();
+        write!(
+            ret,
+            "{} {}",
+            status.vc_name,
+            reader.get_display_branch().unwrap()
+        )
+        .unwrap();
         let counts: Result<String> = reader.get_counts().map_err(Into::into).and_then(|c| {
             let ret = format_counts(
-                STATUS_ORDER, &btree_of_counts(&c)?, c.get_truncated(), false);
+                STATUS_ORDER,
+                &btree_of_counts(&c)?,
+                c.get_truncated(),
+                false,
+            );
             Ok(ret)
         });
         let counts = counts.unwrap();
@@ -404,18 +444,20 @@ pub fn vc_status(test_vc_dir: TestVcDirService) -> BoxFuture<String> {
 
 pub fn git_head_branch(test_vc_dir: TestVcDirService) -> BoxFuture<String> {
     // XXX query branch only
-    let ret = find_vc_root(test_vc_dir).and_then(|o| {
-        let status = match o {
-            Some(v) => v,
-            None => return Ok(None),
-        };
-        match status.results.get_root_as_reader().get_branch()? {
-            "" => Ok(None),
-            s => Ok(Some(s.into())),
-        }
-    }).and_then(|o| match o {
-        Some(head) => Ok(head),
-        None => Err(PromptErrors::NoHead),
-    });
+    let ret = find_vc_root(test_vc_dir)
+        .and_then(|o| {
+            let status = match o {
+                Some(v) => v,
+                None => return Ok(None),
+            };
+            match status.results.get_root_as_reader().get_branch()? {
+                "" => Ok(None),
+                s => Ok(Some(s.into())),
+            }
+        })
+        .and_then(|o| match o {
+            Some(head) => Ok(head),
+            None => Err(PromptErrors::NoHead),
+        });
     Box::new(ret)
 }

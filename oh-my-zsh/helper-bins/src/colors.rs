@@ -30,15 +30,24 @@ fn clamp_0_1(mut f: f64) -> f64 {
 
 impl HslExt for HSL {
     fn rotate(self, degrees: f64) -> HSL {
-        HSL { h: (self.h + degrees) % 360.0, ..self }
+        HSL {
+            h: (self.h + degrees) % 360.0,
+            ..self
+        }
     }
 
     fn saturate(self, amount: f64) -> HSL {
-        HSL { s: clamp_0_1(self.s + amount), ..self }
+        HSL {
+            s: clamp_0_1(self.s + amount),
+            ..self
+        }
     }
 
     fn lighten(self, amount: f64) -> HSL {
-        HSL { l: clamp_0_1(self.l + amount), ..self }
+        HSL {
+            l: clamp_0_1(self.l + amount),
+            ..self
+        }
     }
 }
 
