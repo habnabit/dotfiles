@@ -30,7 +30,7 @@ fn load_plugin(handle: Handle, path: &path::Path) -> Box<Future<Item=Vec<OwnedMe
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())
         .stderr(process::Stdio::inherit())
-        .spawn_async(&handle);
+        .spawn_async();
     let ret = future::done(child)
         .map_err(Into::into)
         .and_then(|mut c| {
@@ -58,7 +58,7 @@ fn builtin_vc_plugin<T: 'static>(name: &str, server: T) -> OwnedMessage<plugin::
         let root = ret.get_root();
         let mut vc = root.init_version_control();
         vc.set_vc_name(name);
-        vc.set_plugin(version_control_plugin::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+        vc.set_plugin(version_control_plugin::ToClient::new(server).into_client::<::capnp_rpc::Server>());
     }
     ret
 }

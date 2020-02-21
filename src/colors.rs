@@ -1,55 +1,16 @@
-use byteorder;
+use blake2::Blake2b;
 use hsl::HSL;
-use rand;
-use regex;
-use sha1::Sha1;
+use rand_chacha::ChaChaRng;
 use std::collections::BTreeMap;
 
-lazy_static! {
-    static ref COLORHASH_PATTERN: regex::Regex = regex::Regex::new(r"(?ix)
-        \{(?P<to_hash>.*?)\}
-    ").unwrap();
-}
-
-fn pick_color(choices: &[u8], allow_all: bool) -> u8 {
-    for &c in choices {
-        if allow_all || match c {
-            22 ... 51 => true,
-            58 ... 230 => true,
-            _ => false,
-        } {
-            return c;
-        }
-    }
-    248
-}
-
-pub fn colorhash(input: &[u8], allow_all: bool) -> String {
-    let mut h = Sha1::new();
-    h.update(input);
-    h.update(&[b'\n']);
-    format!("{:03}", pick_color(&h.digest().bytes(), allow_all))
- }
-
-pub fn parse_and_colorhash(input: &str, allow_all: bool) -> String {
-    COLORHASH_PATTERN.replace_all(input, |capture: &regex::Captures| {
-        let input_str = match capture.name("to_hash") {
-            Some(m) => m.as_str(),
-            None => return "".into(),
-        };
-        let color = colorhash(input_str.as_bytes(), allow_all);
-        format!("%{{$FG[${}]%}}{}%{{$reset_color%}}", color, input_str)
-    }).into()
-}
-
-fn rng_of_str(input: &str) -> rand::ChaChaRng {
-    let mut h = Sha1::new();
-    h.update(input.as_bytes());
-    h.update(b"\0");
-    let hashed_u8 = h.digest().bytes();
-    let mut hashed_u32 = [0u32; 5];
-    <byteorder::LE as byteorder::ByteOrder>::read_u32_into(&hashed_u8, &mut hashed_u32);
-    <rand::ChaChaRng as rand::SeedableRng<_>>::from_seed(&hashed_u32)
+fn rng_of_str(input: &str) -> ChaChaRng {
+    use blake2::digest::{FixedOutput, Input};
+    let hashed = <Blake2b as Default>::default()
+        .chain(input.as_bytes())
+        .chain(b"\0")
+        .fixed_result();
+    let condensed = <byteorder::LE as byteorder::ByteOrder>::read_u64(hashed.as_slice());
+    <ChaChaRng as rand_chacha::rand_core::SeedableRng>::seed_from_u64(condensed)
 }
 
 trait HslExt {
@@ -92,12 +53,12 @@ fn color_and_opposite_by_direness(base: HSL) -> (HSL, HSL) {
 }
 
 pub fn make_theme(input: &str) -> BTreeMap<&'static str, HSL> {
-    use rand::distributions::{Range, IndependentSample};
+    use rand::distributions::{Distribution, Uniform};
     let mut rng = rng_of_str(input);
     let base = HSL {
-        h: Range::new(0.0, 360.0).ind_sample(&mut rng),
-        s: Range::new(0.8, 1.0).ind_sample(&mut rng),
-        l: Range::new(0.5, 0.75).ind_sample(&mut rng),
+        h: Uniform::new(0.0, 360.0).sample(&mut rng),
+        s: Uniform::new(0.8, 1.0).sample(&mut rng),
+        l: Uniform::new(0.5, 0.75).sample(&mut rng),
     };
     let cwd = base.rotate(120.0);
     let vcs = base.rotate(240.0);

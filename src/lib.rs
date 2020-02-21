@@ -1,8 +1,10 @@
+#![allow(bare_trait_objects, deprecated, unused_parens)]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 
 #[macro_use] extern crate lazy_static;
 extern crate ansi_term;
+extern crate blake2;
 extern crate byteorder;
 extern crate capnp;
 extern crate capnp_rpc;
@@ -10,8 +12,8 @@ extern crate clap;
 extern crate futures;
 extern crate hsl;
 extern crate rand;
+extern crate rand_chacha;
 extern crate regex;
-extern crate sha1;
 extern crate tempfile;
 extern crate tokio_core;
 extern crate tokio_process;
