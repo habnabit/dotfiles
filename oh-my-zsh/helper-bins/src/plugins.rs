@@ -16,6 +16,8 @@ use super::errors::{PromptErrors, PromptResult as Result};
 use super::utils::OwnedMessage;
 use super::vc::{Git, Hg};
 
+pub type BoxFuture<T> = Box<dyn Future<Item=T, Error=PromptErrors>>;
+
 fn extract_plugins(resp: &::capnp::capability::Response<plugin_process::initialize_results::Owned>) -> Result<Vec<OwnedMessage<plugin::Owned>>> {
     resp.get()?
         .get_plugins()?
@@ -25,7 +27,7 @@ fn extract_plugins(resp: &::capnp::capability::Response<plugin_process::initiali
         .map_err(Into::into)
 }
 
-fn load_plugin(handle: Handle, path: &path::Path) -> Box<Future<Item=Vec<OwnedMessage<plugin::Owned>>, Error=PromptErrors>> {
+fn load_plugin(path: &path::Path) -> BoxFuture<Vec<OwnedMessage<plugin::Owned>>> {
     let child = process::Command::new(path)
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())
@@ -66,7 +68,7 @@ fn builtin_vc_plugin<T: 'static>(name: &str, server: T) -> OwnedMessage<plugin::
 pub struct VcPlugin<'a>(pub plugin::version_control::Reader<'a>);
 
 impl<'a> VcPlugin<'a> {
-    pub fn get_vc_name(&self, directory: &str, branch_only: bool) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>> {
+    pub fn get_vc_name(&self, directory: &str, branch_only: bool) -> BoxFuture<Option<VcStatus>> {
         let ret = future::result((move || {
             let mut req = self.0.get_plugin()?.status_request();
             let vc_name: String = self.0.get_vc_name()?.into();
@@ -104,7 +106,7 @@ fn vc_plugin(p: &OwnedMessage<plugin::Owned>) -> Option<VcPlugin> {
     }
 }
 
-fn select_first_some<T: 'static, A: 'static>((opt, futures): (Option<T>, Vec<A>)) -> Box<Future<Item=Option<T>, Error=A::Error>>
+fn select_first_some<T: 'static, A: 'static>((opt, futures): (Option<T>, Vec<A>)) -> Box<dyn Future<Item=Option<T>, Error=A::Error>>
     where A: Future<Item=Option<T>>
 {
     match opt {
@@ -150,21 +152,19 @@ impl PluginLoader {
         self
     }
 
-    pub fn load_plugins(mut self) -> Box<Future<Item=Self, Error=PromptErrors>> {
+    pub fn load_plugins(mut self) -> BoxFuture<Self> {
         let plugin_dir = match self.plugin_dir() {
             Some(d) => d,
             None => return Box::new(future::ok(self)),
         };
-        let handle = self.handle.clone();
         let futures = match plugin_dir.read_dir() {
             Ok(r) => r,
             Err(ref e) if e.kind() == NotFound => return Box::new(future::ok(self)),
             Err(e) => return Box::new(future::err(e.into())),
         }.map(move |file| {
-            let handle_ = handle.clone();
             future::result(file)
                 .map_err(Into::into)
-                .and_then(move |d| load_plugin(handle_, &d.path()))
+                .and_then(move |d| load_plugin(&d.path()))
         });
         let ret = future::join_all(futures)
             .map(move |plugins| {
@@ -174,7 +174,7 @@ impl PluginLoader {
         Box::new(ret)
     }
 
-    pub fn test_vc_dir(&self, path: &path::Path) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
+    pub fn test_vc_dir(&self, path: &path::Path) -> BoxFuture<Option<VcStatus>>
     {
         if self.plugins.is_empty() {
             return Box::new(future::ok(None));
@@ -208,7 +208,7 @@ pub trait PluginService {
     type Request: 'static;
     type Response: 'static;
 
-    fn request(loader: &PluginLoader, req: Self::Request) -> Box<Future<Item=Self::Response, Error=PromptErrors>>;
+    fn request(loader: &PluginLoader, req: Self::Request) -> BoxFuture<Self::Response>;
 }
 
 pub enum TestVcDir {}
@@ -216,7 +216,7 @@ impl PluginService for TestVcDir {
     type Request = path::PathBuf;
     type Response = Option<VcStatus>;
 
-    fn request(loader: &PluginLoader, req: path::PathBuf) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
+    fn request(loader: &PluginLoader, req: path::PathBuf) -> BoxFuture<Option<VcStatus>>
     {
         loader.test_vc_dir(&req)
     }
@@ -242,9 +242,9 @@ impl<T> tokio_service::Service for PluginRequestHandle<T>
     type Request = T::Request;
     type Response = T::Response;
     type Error = PromptErrors;
-    type Future = Box<Future<Item=T::Response, Error=PromptErrors>>;
+    type Future = BoxFuture<T::Response>;
 
-    fn call(&self, req: T::Request) -> Box<Future<Item=T::Response, Error=PromptErrors>> {
+    fn call(&self, req: T::Request) -> Self::Future {
         let req_tx = self.sender.clone();
         let (resp_tx, resp_rx) = oneshot::channel();
         let ret = req_tx.send((req, resp_tx))

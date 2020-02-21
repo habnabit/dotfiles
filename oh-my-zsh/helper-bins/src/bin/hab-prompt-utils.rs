@@ -1,4 +1,4 @@
-#![allow(bare_trait_objects, deprecated, unused_parens)]
+#![allow(deprecated, unused_parens)]
 #[macro_use] extern crate clap;
 #[macro_use] extern crate serde_json;
 extern crate ansi_term;
@@ -17,9 +17,9 @@ use hsl::HSL;
 use helper_bins::colors::make_theme;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
-use helper_bins::errors::{PromptErrors, PromptResult as Result};
+use helper_bins::errors::{PromptResult as Result};
 use helper_bins::installer::install_from_manifest;
-use helper_bins::plugins::{PluginLoader, TestVcDirService};
+use helper_bins::plugins::{BoxFuture, PluginLoader, TestVcDirService};
 use helper_bins::ssh_proxy::ssh_proxy_command;
 use helper_bins::vc::{git_head_branch, vc_status};
 
@@ -34,7 +34,7 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     Ok(())
 }
 
-fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> Box<Future<Item=BTreeMap<&'static str, String>, Error=PromptErrors>>
+fn zsh_precmd_map(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> BoxFuture<BTreeMap<&'static str, String>>
 {
     let ret = futures::lazy(move || {
         let mut results = BTreeMap::new();
@@ -112,7 +112,7 @@ fn zsh_map_string(map: &BTreeMap<&'static str, String>) -> String {
     ret
 }
 
-fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> Box<Future<Item=(), Error=PromptErrors>>
+fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService) -> BoxFuture<()>
 {
     let ret = zsh_precmd_map(timers, test_vc_dir)
         .and_then(|map| {
@@ -125,7 +125,7 @@ fn zsh_precmd(timers: Option<(time::Duration, time::Duration)>, test_vc_dir: Tes
 }
 
 fn run_in_loop<F, T>(func: F) -> Result<T>
-    where F: FnOnce(TestVcDirService) -> Box<Future<Item=T, Error=PromptErrors>>
+    where F: FnOnce(TestVcDirService) -> BoxFuture<T>
 {
     let mut lp = try!(tokio_core::reactor::Core::new());
     let fut = PluginLoader::new(lp.handle())
@@ -208,7 +208,7 @@ fn main() {
         let host = m.value_of("HOST").unwrap();
         let port = m.value_of("PORT").unwrap();
         let mut args = m.values_of_os("SSHARGS");
-        let args_iter = args.as_mut().map(|i| i as &mut Iterator<Item=_>);
+        let args_iter = args.as_mut().map(|i| i as &mut dyn Iterator<Item=_>);
         ssh_proxy_command(host, port, args_iter).and_then(|mut c| {
             if m.is_present("dry_run") {
                 use std::io::Write;
