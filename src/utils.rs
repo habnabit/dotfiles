@@ -5,7 +5,9 @@ use super::plugins_capnp::file_counts;
 
 const ITERATION_LIMIT: usize = 1000;
 
-pub fn format_counts(order: &str, counts: &BTreeMap<char, usize>, truncated: bool, show_total: bool) -> String {
+pub fn format_counts(
+    order: &str, counts: &BTreeMap<char, usize>, truncated: bool, show_total: bool,
+) -> String {
     use std::fmt::Write;
     let mut sorted: Vec<_> = counts
         .into_iter()
@@ -39,8 +41,9 @@ pub fn btree_of_counts(counts: &file_counts::Reader) -> Result<BTreeMap<char, us
 }
 
 pub fn limited_foreach<I, F>(iter: I, mut func: F) -> Result<bool>
-    where I: IntoIterator,
-          F: FnMut(I::Item) -> Result<()>,
+where
+    I: IntoIterator,
+    F: FnMut(I::Item) -> Result<()>,
 {
     for (e, item) in iter.into_iter().enumerate() {
         if e >= ITERATION_LIMIT {
@@ -61,18 +64,22 @@ impl<T: Ord> IncrementalMap<T> for BTreeMap<T, usize> {
     }
 }
 
-pub struct OwnedMessage<T: for<'a> ::capnp::traits::Owned<'a>,
-                        A: ::capnp::message::Allocator=::capnp::message::HeapAllocator>
-{
+pub struct OwnedMessage<
+    T: for<'a> ::capnp::traits::Owned<'a>,
+    A: ::capnp::message::Allocator = ::capnp::message::HeapAllocator,
+> {
     message: ::capnp::message::Builder<A>,
     phantom: ::std::marker::PhantomData<T>,
 }
 
 impl<T, A> OwnedMessage<T, A>
-    where T: for<'a> ::capnp::traits::Owned<'a>,
-          A: ::capnp::message::Allocator
+where
+    T: for<'a> ::capnp::traits::Owned<'a>,
+    A: ::capnp::message::Allocator,
 {
-    pub fn new<'b>(alloc: A, r: <T as ::capnp::traits::Owned<'b>>::Reader) -> ::std::result::Result<OwnedMessage<T, A>, ::capnp::Error> {
+    pub fn new<'b>(
+        alloc: A, r: <T as ::capnp::traits::Owned<'b>>::Reader,
+    ) -> ::std::result::Result<OwnedMessage<T, A>, ::capnp::Error> {
         let mut message = ::capnp::message::Builder::new(alloc);
         try!(message.set_root(r));
         Ok(OwnedMessage {
@@ -91,9 +98,13 @@ impl<T, A> OwnedMessage<T, A>
 }
 
 impl<T> OwnedMessage<T, ::capnp::message::HeapAllocator>
-    where T: for<'a> ::capnp::traits::Owned<'a>,
+where
+    T: for<'a> ::capnp::traits::Owned<'a>,
 {
-    pub fn new_default<'b>(r: <T as ::capnp::traits::Owned<'b>>::Reader) -> ::std::result::Result<OwnedMessage<T, ::capnp::message::HeapAllocator>, ::capnp::Error> {
+    pub fn new_default<'b>(
+        r: <T as ::capnp::traits::Owned<'b>>::Reader,
+    ) -> ::std::result::Result<OwnedMessage<T, ::capnp::message::HeapAllocator>, ::capnp::Error>
+    {
         let mut message = ::capnp::message::Builder::new_default();
         try!(message.set_root(r));
         Ok(OwnedMessage {

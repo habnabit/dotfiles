@@ -1,0 +1,7 @@
+edition = "2015"
+unstable_features = true
+
+fn_args_layout = "Compressed"
+match_block_trailing_comma = true
+trailing_comma = "Vertical"
+#use_try_shorthand = true
