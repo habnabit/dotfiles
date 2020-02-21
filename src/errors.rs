@@ -6,7 +6,7 @@ pub enum PromptErrors {
     Fmt,
     Io(io::Error),
     Utf8(Utf8Error),
-    Boxed(Box<error::Error>),
+    Boxed(Box<dyn error::Error>),
     InvalidSshProxy(String),
     InstallationError(String),
     NoHead,

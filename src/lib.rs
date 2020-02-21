@@ -1,4 +1,4 @@
-#![allow(bare_trait_objects, deprecated, unused_parens)]
+#![allow(deprecated, unused_parens)]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 

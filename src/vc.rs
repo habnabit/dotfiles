@@ -11,7 +11,7 @@ use tokio_service::Service;
 
 use super::errors::{PromptErrors, PromptResult as Result};
 use super::utils::{IncrementalMap, btree_of_counts, format_counts};
-use super::plugins::{TestVcDirService, VcStatus};
+use super::plugins::{BoxFuture, TestVcDirService, VcStatus};
 use super::plugins_capnp::{file_counts, version_control_plugin};
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
@@ -22,13 +22,13 @@ fn tolower(c: char) -> char {
     c.to_lowercase().next().unwrap()
 }
 
-fn status_inner_loop<F: 'static, T: 'static>(reader: T, mut updater: F, buf: Vec<u8>, mut ret: BTreeMap<char, usize>) -> Box<Future<Item=BTreeMap<char, usize>, Error=PromptErrors>>
+fn status_inner_loop<F: 'static, T: 'static>(reader: T, mut updater: F, buf: Vec<u8>, mut ret: BTreeMap<char, usize>) -> BoxFuture<BTreeMap<char, usize>>
     where F: FnMut(&mut BTreeMap<char, usize>, &str),
           T: BufRead,
 {
     let ret = ::tokio_core::io::read_until(reader, b'\n', buf)
         .map_err(Into::into)
-        .and_then(move |(reader, mut buf)| -> Box<Future<Item=BTreeMap<char, usize>, Error=PromptErrors>> {
+        .and_then(move |(reader, mut buf)| -> BoxFuture<BTreeMap<char, usize>> {
             match ::std::str::from_utf8(&buf) {
                 Err(e) => return Box::new(future::err(e.into())),
                 Ok("") => return Box::new(future::ok(ret)),
@@ -40,7 +40,7 @@ fn status_inner_loop<F: 'static, T: 'static>(reader: T, mut updater: F, buf: Vec
     Box::new(ret)
 }
 
-fn status_line_loop<F: 'static, T: 'static>(reader: T, updater: F) -> Box<Future<Item=BTreeMap<char, usize>, Error=PromptErrors>>
+fn status_line_loop<F: 'static, T: 'static>(reader: T, updater: F) -> BoxFuture<BTreeMap<char, usize>>
     where F: FnMut(&mut BTreeMap<char, usize>, &str),
           T: BufRead,
 {
@@ -68,7 +68,7 @@ impl GitRequest {
         cmd
     }
 
-    fn run_git_status(&self) -> Box<Future<Item=BTreeMap<char, usize>, Error=PromptErrors>> {
+    fn run_git_status(&self) -> BoxFuture<BTreeMap<char, usize>> {
         let child = self.command_setup()
             .arg("status").arg("--porcelain")
             .stdout(process::Stdio::piped())
@@ -83,7 +83,7 @@ impl GitRequest {
         Box::new(ret)
     }
 
-    fn get_git_head_branch(&self) -> Box<Future<Item=Option<String>, Error=PromptErrors>> {
+    fn get_git_head_branch(&self) -> BoxFuture<Option<String>> {
         let child = self.command_setup()
             .arg("symbolic-ref").arg("HEAD")
             .stdout(process::Stdio::piped())
@@ -107,7 +107,7 @@ impl GitRequest {
         Box::new(ret)
     }
 
-    fn get_git_sha(&self) -> Box<Future<Item=String, Error=PromptErrors>> {
+    fn get_git_sha(&self) -> BoxFuture<String> {
         let child = self.command_setup()
             .arg("show").arg("--pretty=%h").arg("-s")
             .stdout(process::Stdio::piped())
@@ -126,10 +126,10 @@ impl GitRequest {
         Box::new(ret)
     }
 
-    fn fill_all(self, mut results: version_control_plugin::StatusResults) -> Box<Future<Item=(), Error=PromptErrors>> {
+    fn fill_all(self, mut results: version_control_plugin::StatusResults) -> BoxFuture<()> {
         let status = self.run_git_status();
         let ret = self.get_git_head_branch()
-            .and_then(move |o| -> Box<Future<Item=(Option<String>, String), Error=PromptErrors>> {
+            .and_then(move |o| -> BoxFuture<(Option<String>, String)> {
                 match o {
                     Some(s) => Box::new(future::ok((Some(s.clone()), s))),
                     None => Box::new(self.get_git_sha().map(|s| (None, s))),
@@ -146,7 +146,7 @@ impl GitRequest {
         Box::new(ret)
     }
 
-    fn fill_branch_only(self, mut results: version_control_plugin::StatusResults) -> Box<Future<Item=(), Error=PromptErrors>> {
+    fn fill_branch_only(self, mut results: version_control_plugin::StatusResults) -> BoxFuture<()> {
         let ret = self.get_git_head_branch()
             .map(move |branch_opt| {
                 let mut resp = results.get().init_status().init_some();
@@ -204,7 +204,7 @@ impl HgRequest {
         cmd
     }
 
-    fn run_hg_status(&self) -> Box<Future<Item=BTreeMap<char, usize>, Error=PromptErrors>> {
+    fn run_hg_status(&self) -> BoxFuture<BTreeMap<char, usize>> {
         let child = self.command_setup()
             .arg("status")
             .stdout(process::Stdio::piped())
@@ -219,7 +219,7 @@ impl HgRequest {
         Box::new(ret)
     }
 
-    fn get_hg_branch(&self) -> Box<Future<Item=String, Error=PromptErrors>> {
+    fn get_hg_branch(&self) -> BoxFuture<String> {
         let child = self.command_setup()
             .arg("id").arg("-bn")
             .stdout(process::Stdio::piped())
@@ -239,7 +239,7 @@ impl HgRequest {
         Box::new(ret)
     }
 
-    fn fill_all(self, mut results: version_control_plugin::StatusResults) -> Box<Future<Item=(), Error=PromptErrors>> {
+    fn fill_all(self, mut results: version_control_plugin::StatusResults) -> BoxFuture<()> {
         let ret = self.get_hg_branch()
             .join(self.run_hg_status())
             .map(move |(branch, counts)| {
@@ -336,7 +336,7 @@ fn path_dev(path: &path::Path) -> Result<u64> {
     Ok(path.metadata().map(|m| m.dev())?)
 }
 
-fn vc_root_step(test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
+fn vc_root_step(test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf) -> BoxFuture<Option<VcStatus>>
 {
     enum Step {
         Done(Result<Option<VcStatus>>),
@@ -361,7 +361,7 @@ fn vc_root_step(test_vc_dir: TestVcDirService, top_dev: u64, cur: path::PathBuf)
     Box::new(ret)
 }
 
-fn find_vc_root(test_vc_dir: TestVcDirService) -> Box<Future<Item=Option<VcStatus>, Error=PromptErrors>>
+fn find_vc_root(test_vc_dir: TestVcDirService) -> BoxFuture<Option<VcStatus>>
 {
     let (cwd, top_dev) = match env::current_dir() {
         Ok(cwd) => match path_dev(&cwd) {
@@ -377,7 +377,7 @@ fn from_utf8(v: Vec<u8>) -> Result<String> {
     Ok(String::from_utf8(v)?)
 }
 
-pub fn vc_status(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error=PromptErrors>> {
+pub fn vc_status(test_vc_dir: TestVcDirService) -> BoxFuture<String> {
     let ret = find_vc_root(test_vc_dir).map(|o| {
         let status = match o {
             Some(v) => v,
@@ -402,7 +402,7 @@ pub fn vc_status(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error
     Box::new(ret)
 }
 
-pub fn git_head_branch(test_vc_dir: TestVcDirService) -> Box<Future<Item=String, Error=PromptErrors>> {
+pub fn git_head_branch(test_vc_dir: TestVcDirService) -> BoxFuture<String> {
     // XXX query branch only
     let ret = find_vc_root(test_vc_dir).and_then(|o| {
         let status = match o {

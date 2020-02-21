@@ -2,7 +2,6 @@
 // Copyright (c) 2015 by Shipeng Feng.
 // Licensed under the BSD License, see LICENSE for more details.
 
-use std::ascii::AsciiExt;
 use std::io::{Write, self};
 use std::str;
 
