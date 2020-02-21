@@ -11,10 +11,10 @@ use super::term::confirm;
 
 fn action_exists(source: &path::Path, _: &path::Path) -> Result<()> {
     println!("Ensuring the existence of {:?}.", source);
-    let _ = try!(fs::OpenOptions::new()
+    let _ = fs::OpenOptions::new()
         .append(true)
         .create(true)
-        .open(source));
+        .open(source)?;
     Ok(())
 }
 
@@ -33,7 +33,7 @@ fn action_install(source: &path::Path, target: &path::Path) -> Result<()> {
             ref t if t.is_file() => {
                 let prompt = format!("Delete extant file {:?}", target);
                 if confirm(&prompt, true, "? ", true) {
-                    try!(fs::remove_file(target));
+                    fs::remove_file(target)?;
                 } else {
                     return Err(PromptErrors::InstallationError(format!(
                         "not deleting {:?}",
@@ -41,7 +41,7 @@ fn action_install(source: &path::Path, target: &path::Path) -> Result<()> {
                     )));
                 }
             },
-            ref t if t.is_symlink() => try!(fs::remove_file(target)),
+            ref t if t.is_symlink() => fs::remove_file(target)?,
             _ => {
                 return Err(PromptErrors::InstallationError(format!(
                     "can't figure out what {:?} is",
@@ -50,15 +50,14 @@ fn action_install(source: &path::Path, target: &path::Path) -> Result<()> {
             },
         },
     }
-    try!(symlink(source, target));
+    symlink(source, target)?;
     Ok(())
 }
 
 fn find_files_to_assemble(source: &path::Path) -> Result<Vec<path::PathBuf>> {
-    let files = try!(fs::read_dir(source))
+    let mut files = fs::read_dir(source)?
         .map(|r| r.map(|e| (None, None, e.path())))
-        .collect();
-    let mut files: Vec<_> = try!(files);
+        .collect::<std::result::Result<Vec<_>, _>>()?;
     for &mut (ref mut number, ref mut letter, ref mut path) in &mut files {
         match path.file_name().and_then(|f| f.to_str()) {
             Some(f) => {
@@ -84,17 +83,17 @@ fn find_files_to_assemble(source: &path::Path) -> Result<Vec<path::PathBuf>> {
 }
 
 fn assemble_files(source: &path::Path, target: &path::Path) -> Result<()> {
-    let files = try!(find_files_to_assemble(source));
+    let files = find_files_to_assemble(source)?;
     let out = NamedTempFileOptions::new()
         .prefix("_tmp")
         .create_in(target.parent().unwrap_or_else(|| unimplemented!()));
-    let mut out = try!(out);
+    let mut out = out?;
     for file in files {
-        let mut file = try!(fs::OpenOptions::new().read(true).open(file));
-        try!(io::copy(&mut file, &mut out));
-        try!(io::Write::write_all(&mut out, b"\n\n\n"));
+        let mut file = fs::OpenOptions::new().read(true).open(file)?;
+        io::copy(&mut file, &mut out)?;
+        io::Write::write_all(&mut out, b"\n\n\n")?;
     }
-    try!(out.persist(target).map_err(|e| e.error));
+    out.persist(target).map_err(|e| e.error)?;
     Ok(())
 }
 
@@ -108,8 +107,8 @@ fn action_assemble(source: &path::Path, target: &path::Path) -> Result<()> {
     source.set_file_name(source_name);
     println!("Assembling {:?} to {:?}.", source, target);
     let assembled_file = source.join("_assembled");
-    try!(assemble_files(&source, &assembled_file));
-    try!(action_install(&assembled_file, target));
+    assemble_files(&source, &assembled_file)?;
+    action_install(&assembled_file, target)?;
     Ok(())
 }
 
@@ -121,11 +120,11 @@ const ACTIONS: [(&'static str, fn(&path::Path, &path::Path) -> Result<()>); 3] =
 
 pub fn install_from_manifest(manifest: &path::Path, target_dir: &path::Path) -> Result<()> {
     let manifest_dir = manifest.parent().unwrap_or_else(|| unimplemented!());
-    let manifest_dir = try!(manifest_dir.canonicalize());
-    let target_dir = try!(target_dir.canonicalize());
-    let file = io::BufReader::new(try!(fs::OpenOptions::new().read(true).open(manifest)));
+    let manifest_dir = manifest_dir.canonicalize()?;
+    let target_dir = target_dir.canonicalize()?;
+    let file = io::BufReader::new(fs::OpenOptions::new().read(true).open(manifest)?);
     for line in io::BufRead::lines(file) {
-        let line = try!(line);
+        let line = line?;
         let splut: Vec<&str> = line.split_whitespace().collect();
         let (name, source, target) = match splut.len() {
             2 => {
@@ -156,7 +155,7 @@ pub fn install_from_manifest(manifest: &path::Path, target_dir: &path::Path) -> 
             })
             .next()
             .unwrap_or_else(|| unimplemented!());
-        try!(action(&source, &target));
+        action(&source, &target)?;
     }
     Ok(())
 }
