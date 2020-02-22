@@ -146,7 +146,7 @@ impl PluginLoader {
         if let Ok(d) = env::var("HAB_PROMPT_PLUGIN_DIR") {
             return Some(d.into());
         }
-        let mut plugin_dir = match env::home_dir() {
+        let mut plugin_dir = match dirs::home_dir() {
             Some(h) => h,
             None => return None,
         };
@@ -205,7 +205,7 @@ impl PluginLoader {
             .and_then(move |(req, resp_tx)| {
                 TestVcDir::request(&self, req)
                     .map(move |resp| {
-                        (resp_tx as oneshot::Sender<Option<VcStatus>>).complete(resp);
+                        let _ = (resp_tx as oneshot::Sender<Option<VcStatus>>).send(resp);
                     })
                     .map_err(|_| ())
             })

@@ -27,7 +27,7 @@ fn get_prompt_input(prompt_text: &str) -> String {
     io::stdin()
         .read_line(&mut input)
         .expect("Failed to read line");
-    let new_len = input.trim_right_matches("\n").len();
+    let new_len = input.trim_end_matches("\n").len();
     input.truncate(new_len);
     input
 }

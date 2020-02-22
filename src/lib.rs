@@ -1,4 +1,4 @@
-#![allow(deprecated, unused_parens)]
+#![allow(unused_parens)]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(fnconcat))]
 
@@ -10,6 +10,7 @@ extern crate byteorder;
 extern crate capnp;
 extern crate capnp_rpc;
 extern crate clap;
+extern crate dirs;
 extern crate futures;
 extern crate hsl;
 extern crate rand;
