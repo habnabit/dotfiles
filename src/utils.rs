@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
 
+use capnp::private::layout::CapTable;
+use capnp::traits::{Imbue, ImbueMut};
+
 use super::errors::PromptResult as Result;
 use super::plugins_capnp::file_counts;
 
@@ -69,6 +72,7 @@ pub struct OwnedMessage<
     A: ::capnp::message::Allocator = ::capnp::message::HeapAllocator,
 > {
     message: ::capnp::message::Builder<A>,
+    cap_table: CapTable,
     phantom: ::std::marker::PhantomData<T>,
 }
 
@@ -84,16 +88,29 @@ where
         message.set_root(r)?;
         Ok(OwnedMessage {
             message: message,
+            cap_table: Default::default(),
             phantom: ::std::marker::PhantomData,
         })
     }
 
-    pub fn get_root<'b>(&'b mut self) -> <T as ::capnp::traits::Owned<'b>>::Builder {
-        self.message.get_root().expect("???")
+    pub fn get_root<'b>(&'b mut self) -> <T as ::capnp::traits::Owned<'b>>::Builder
+    where
+        <T as ::capnp::traits::Owned<'b>>::Builder: ImbueMut<'b>,
+    {
+        let mut b: <T as ::capnp::traits::Owned<'b>>::Builder =
+            self.message.get_root().expect("???");
+        ImbueMut::imbue_mut(&mut b, &mut self.cap_table);
+        b
     }
 
-    pub fn get_root_as_reader<'b>(&'b self) -> <T as ::capnp::traits::Owned<'b>>::Reader {
-        self.message.get_root_as_reader().expect("???")
+    pub fn get_root_as_reader<'b>(&'b self) -> <T as ::capnp::traits::Owned<'b>>::Reader
+    where
+        <T as ::capnp::traits::Owned<'b>>::Reader: Imbue<'b>,
+    {
+        let mut r: <T as ::capnp::traits::Owned<'b>>::Reader =
+            self.message.get_root_as_reader().expect("???");
+        Imbue::imbue(&mut r, &self.cap_table);
+        r
     }
 }
 
@@ -109,6 +126,7 @@ where
         message.set_root(r)?;
         Ok(OwnedMessage {
             message: message,
+            cap_table: Vec::new(),
             phantom: ::std::marker::PhantomData,
         })
     }
@@ -118,6 +136,7 @@ where
         message.init_root::<T::Builder>();
         OwnedMessage {
             message: message,
+            cap_table: Vec::new(),
             phantom: ::std::marker::PhantomData,
         }
     }
