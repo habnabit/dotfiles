@@ -110,7 +110,7 @@ impl GitRequest {
                     Ok(Some(
                         git_ref
                             .as_str()
-                            .trim_left_matches("refs/heads/")
+                            .trim_start_matches("refs/heads/")
                             .trim()
                             .to_string(),
                     ))

@@ -1,4 +1,3 @@
-#![allow(deprecated, unused_parens)]
 #[macro_use]
 extern crate clap;
 #[macro_use]
