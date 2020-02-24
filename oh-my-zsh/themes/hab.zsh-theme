@@ -22,6 +22,7 @@ async_register_callback hab_prompt hab_prompt_results
 
 typeset -A hab_colors
 typeset -A hab_promptinfo
+typeset -A hab_promptinfo_supp
 typeset -a timer
 
 local prompt_char='$'
@@ -31,13 +32,13 @@ local user_host='%{$hab_colors[username]%}%n@%{$hab_colors[hostname]%}%m%{$reset
 local current_dir='%{$hab_colors[cwd]%}%~%{$reset_color%}'
 local dircount='${hab_promptinfo[files]}'
 local vc_info='$(vc_prompt_info)%{$reset_color%}'
-local return_code="  %(?.%{$hab_colors[good_exit]%}.%{$hab_colors[bad_exit]%}%? )\${hab_promptinfo[duration]} ↵%{$reset_color%}"
+local return_code='  %(?.%{$hab_colors[good_exit]%}.%{$hab_colors[bad_exit]%}%?${hab_promptinfo_supp[exitdesc]}) ${hab_promptinfo[duration]} ↵%{$reset_color%}'
 
 if [[ $(id -u) == 0 ]]; then
     prompt_char='#'
 fi
 
-prompt_char="%{$hab_colors[prompt_char]%}${prompt_char}%{$reset_color%}"
+prompt_char='%{$hab_colors[prompt_char]%}'${prompt_char}'%{$reset_color%}'
 
 function vc_prompt_info () {
     local vc_status="${hab_promptinfo[vc]}"
@@ -49,7 +50,13 @@ function vc_prompt_info () {
 typeset -A jobtypes
 jobtypes=(running r suspended s done d)
 function hab_prompt_precmd () {
+    local exit_code=$?
     hab_promptinfo=(files ❖ duration ❖)
+    hab_promptinfo_supp=(exitdesc '')
+    if [[ $exit_code -gt 128 ]]; then
+        local exit_signal=${signals[$exit_code - 127]}
+        hab_promptinfo_supp[exitdesc]=${exit_signal:+(SIG$exit_signal)}
+    fi
     async_job hab_prompt hab_prompt_run ${PWD} precmd ${timer} ${epochtime}
     timer=()
     local jobs=''
@@ -72,4 +79,4 @@ VIRTUAL_ENV_DISABLE_PROMPT=1
 PROMPT="
 ╭── ${current_dir}: ${dircount}${vc_info}${return_code}
 ╰─ ${user_host} ${prompt_char} "
-RPROMPT="%{$hab_colors[rprompt]%}\${job_counts}%{$reset_color%}"
+RPROMPT='%{$hab_colors[rprompt]%}${job_counts}%{$reset_color%}'
