@@ -12,7 +12,7 @@ function hab_prompt_results () {
     if [[ $2 == 0 ]]; then
 	hab_promptinfo=("${(0)3}")
     else
-	hab_promptinfo=(files ✘ duration ✘)
+	hab_promptinfo=(files ✘ duration ✘ _error ${(j: :)${(q-)@}})
     fi
     zle && zle .reset-prompt
 }
