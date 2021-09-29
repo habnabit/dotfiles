@@ -76,6 +76,11 @@ mkc () {
     cd "$1"
 }
 
+mkt () {
+    d="${TMPDIR:-/tmp}/interactiveXXXXX-${1:-dir}"
+    cd $(mktemp -d "${d}")
+}
+
 t () {
     host=$1
     shift

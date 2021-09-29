@@ -8,7 +8,10 @@ function hab_prompt_run () {
     hab-prompt-utils "$@"
 }
 
+local n_pending=0
+
 function hab_prompt_results () {
+    n_pending=0
     if [[ $2 == 0 ]]; then
 	hab_promptinfo=("${(0)3}")
     else
@@ -17,8 +20,11 @@ function hab_prompt_results () {
     zle && zle .reset-prompt
 }
 
-async_start_worker hab_prompt -u -n
-async_register_callback hab_prompt hab_prompt_results
+function hab_prompt_reset_async () {
+    async_start_worker hab_prompt -u -n
+    async_register_callback hab_prompt hab_prompt_results
+}
+hab_prompt_reset_async
 
 typeset -A hab_colors
 typeset -A hab_promptinfo
@@ -56,6 +62,15 @@ function hab_prompt_precmd () {
     if [[ $exit_code -gt 128 ]]; then
         local exit_signal=${signals[$exit_code - 127]}
         hab_promptinfo_supp[exitdesc]=${exit_signal:+(SIG$exit_signal)}
+    fi
+    if (( n_pending > 5 )); then
+        echo '(resetting async)'
+        hab_prompt_reset_async
+    else
+        if (( n_pending > 0 )); then
+            hab_promptinfo=(files ‼ duration ‼)
+        fi
+        n_pending=$(( n_pending + 1 ))
     fi
     async_job hab_prompt hab_prompt_run ${PWD} precmd ${timer} ${epochtime}
     timer=()
