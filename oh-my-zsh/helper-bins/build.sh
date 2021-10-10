@@ -1,5 +1,5 @@
 #!/bin/sh -eux
-cargo build --release --target="$1"
+cargo build --release
 bindir=$(printf "lfs-%s-%s" $(uname -sm))
 mkdir -p "${bindir}"
-cp target/"$1"/release/hab-prompt-utils "${bindir}/"
+cp target/release/hab-prompt-utils "${bindir}/"
