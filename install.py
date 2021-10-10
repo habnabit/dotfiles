@@ -29,7 +29,7 @@ def main():
         binary_lfs = os.path.join(basedir, lfsdir, binary)
         binary_bin = os.path.join(basedir, bindir, binary)
         with open(binary_lfs, 'rb') as infile:
-            if infile.readline().startswith('version '):
+            if infile.readline().startswith(b'version '):
                 subprocess.check_call(
                     [sys.executable, lfs_fetch,
                      lfsconfig, binary_lfs, binary_bin])
