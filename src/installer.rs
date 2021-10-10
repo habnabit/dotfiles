@@ -9,8 +9,18 @@ use tempfile::NamedTempFileOptions;
 use super::errors::{PromptErrors, PromptResult as Result};
 use super::term::confirm;
 
+fn maybe_mkdir(
+    for_file_at: &path::Path,
+) -> Result<()> {
+    if let Some(parent) = for_file_at.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    Ok(())
+}
+
 fn action_exists(source: &path::Path, _: &path::Path) -> Result<()> {
     println!("Ensuring the existence of {:?}.", source);
+    maybe_mkdir(source)?;
     let _ = fs::OpenOptions::new()
         .append(true)
         .create(true)
@@ -50,6 +60,7 @@ fn action_install(source: &path::Path, target: &path::Path) -> Result<()> {
             },
         },
     }
+    maybe_mkdir(target)?;
     symlink(source, target)?;
     Ok(())
 }
@@ -84,6 +95,7 @@ fn find_files_to_assemble(source: &path::Path) -> Result<Vec<path::PathBuf>> {
 
 fn assemble_files(source: &path::Path, target: &path::Path) -> Result<()> {
     let files = find_files_to_assemble(source)?;
+    maybe_mkdir(target)?;
     let out = NamedTempFileOptions::new()
         .prefix("_tmp")
         .create_in(target.parent().unwrap_or_else(|| unimplemented!()));
@@ -112,9 +124,27 @@ fn action_assemble(source: &path::Path, target: &path::Path) -> Result<()> {
     Ok(())
 }
 
-const ACTIONS: [(&'static str, fn(&path::Path, &path::Path) -> Result<()>); 3] = [
+fn action_uninstall(source: &path::Path, target: &path::Path) -> Result<()> {
+    println!("Uninstalling {:?}.", target);
+    match fs::read_link(target) {
+        Err(ref e) if e.kind() == NotFound => (),
+        Err(e) => Err(e)?,
+        Ok(link_target) => if link_target == source {
+            fs::remove_file(target)?;
+        } else {
+            return Err(PromptErrors::InstallationError(format!(
+                "cowardly refusing to delete weird link to {:?}",
+                link_target
+            )))
+        },
+    }
+    Ok(())
+}
+
+static ACTIONS: &'static [(&'static str, fn(&path::Path, &path::Path) -> Result<()>)] = &[
     ("exists", action_exists),
     ("install", action_install),
+    ("!install", action_uninstall),
     ("assemble", action_assemble),
 ];
 
