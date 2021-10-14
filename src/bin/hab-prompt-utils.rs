@@ -23,6 +23,7 @@ use helper_bins::installer::install_from_manifest;
 use helper_bins::plugins::{BoxFuture, PluginLoader, TestVcDirService};
 use helper_bins::ssh_proxy::ssh_proxy_command;
 use helper_bins::vc::{git_head_branch, vc_status};
+use helper_bins::utils::default_theme_seed;
 
 fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     use std::io::Write;
@@ -58,7 +59,7 @@ fn zsh_precmd_map(
     Box::new(ret)
 }
 
-fn stringify_theme(theme: BTreeMap<&'static str, HSL>, format: Option<&str>) -> Result<String> {
+fn stringify_theme(theme: BTreeMap<&'static str, HSL>, format: Option<&str>, source: &str) -> Result<String> {
     Ok(match format {
         Some("zsh") => {
             let theme_ansi = theme
@@ -68,17 +69,19 @@ fn stringify_theme(theme: BTreeMap<&'static str, HSL>, format: Option<&str>) -> 
             zsh_map_string(&theme_ansi)
         },
         Some("json") => {
-            let theme_json: serde_json::Value = theme
+            let mut theme_map = theme
                 .into_iter()
                 .map(|(k, v)| (k.into(), json_of_hsl(v)))
-                .collect::<serde_json::map::Map<String, _>>()
-                .into();
+                .collect::<serde_json::map::Map<String, _>>();
+            theme_map.insert("_source".to_owned(), source.into());
+            let theme_json: serde_json::Value = theme_map.into();
             serde_json::to_string(&theme_json).unwrap() // XXX
         },
         _ => {
+            use std::fmt::Write;
             let mut out = String::new();
+            write!(out, "generated for {:?}:\n", source)?;
             for (k, v) in theme {
-                use std::fmt::Write;
                 write!(out, "{}: {:?}\n", k, v)?;
             }
             out
@@ -172,7 +175,7 @@ fn main() {
       (aliases: &["color-theme"])
       (about: "Hash a value into a 24-bit color theme")
       (@arg format: -f --format +takes_value "Set the output format (zsh, json)")
-      (@arg STRING: +required)
+      (@arg STRING:)
      )
      (@subcommand ssh_proxy =>
       (aliases: &["ssh-proxy"])
@@ -211,9 +214,12 @@ fn main() {
         };
         run_in_loop(move |test_vc_dir| zsh_precmd(durations, test_vc_dir))
     } else if let Some(m) = matches.subcommand_matches("color_theme") {
-        let the_string = m.value_of("STRING").unwrap();
-        let theme = make_theme(the_string);
-        stringify_theme(theme, m.value_of("format")).and_then(|s| actually_emit(s, true))
+        let the_string = m.value_of("STRING")
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(default_theme_seed);
+        let theme = make_theme(&the_string);
+        stringify_theme(theme, m.value_of("format"), &the_string)
+            .and_then(|s| actually_emit(s, true))
     } else if let Some(m) = matches.subcommand_matches("ssh_proxy") {
         let host = m.value_of("HOST").unwrap();
         let port = m.value_of("PORT").unwrap();

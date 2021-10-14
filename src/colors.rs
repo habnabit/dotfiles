@@ -53,7 +53,7 @@ impl HslExt for HSL {
 
 fn color_and_opposite_by_direness(base: HSL) -> (HSL, HSL) {
     let opposite = base.rotate(180.0);
-    if base.h <= 60.0 || base.h >= 240.0 {
+    if base.h <= 80.0 || base.h >= 260.0 {
         // base is in the 'dire' hue range
         (opposite, base)
     } else {

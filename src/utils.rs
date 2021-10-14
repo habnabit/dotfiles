@@ -141,3 +141,13 @@ where
         }
     }
 }
+
+pub fn default_theme_seed() -> String {
+    let mut ret = whoami::username();
+    let hostname = whoami::hostname();
+    if let Some(seg) = hostname.split('.').next() {
+        ret.push('@');
+        ret.push_str(seg);
+    }
+    ret
+}

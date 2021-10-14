@@ -20,6 +20,7 @@ extern crate tempfile;
 extern crate tokio_core;
 extern crate tokio_process;
 extern crate tokio_service;
+extern crate whoami;
 
 pub mod plugins_capnp {
     include!(concat!(env!("OUT_DIR"), "/plugins_capnp.rs"));
