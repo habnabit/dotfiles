@@ -32,7 +32,7 @@ typeset -A hab_promptinfo_supp
 typeset -a timer
 
 local prompt_char='$'
-local to_hash="${HAB_PROMPT_COLOR_BASE:-$(whoami)@$(hostname -s)}"
+local to_hash="${HAB_PROMPT_COLOR_BASE:-}"
 hab_colors=("${(0)$(hab-prompt-utils color-theme --format=zsh ${to_hash})}")
 local user_host='%{$hab_colors[username]%}%n@%{$hab_colors[hostname]%}%m%{$reset_color%}'
 local current_dir='%{$hab_colors[cwd]%}%~%{$reset_color%}'
