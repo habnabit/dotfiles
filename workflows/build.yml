@@ -1,29 +1,33 @@
 on: [push]
 
 jobs:
-  armv7_job:
-    # The host should always be Linux
+  build:
     runs-on: ubuntu-18.04
-    name: Build on ubuntu-18.04 armv7
+    name: build hab-prompt-utils linux binaries
     steps:
       - uses: actions/checkout@v2.1.0
-      - uses: uraimo/run-on-arch-action@v2.0.5
-        name: Run commands
-        id: runcmd
+
+      - name: build on armv7+linux for armv6
+        uses: uraimo/run-on-arch-action@v2.0.5
         with:
           arch: armv7
           distro: ubuntu18.04
-
-          # Not required, but speeds up builds by storing container images in
-          # a GitHub package registry.
           githubToken: ${{ github.token }}
 
-          # Set an output parameter `uname` for use in subsequent steps
-          run: |
-            uname -a
-            echo ::set-output name=uname::$(uname -a)
+          install: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+              | sh -s -- --default-host=arm-unknown-linux-gnueabihf
 
-      - name: Get the output
-        # Echo the `uname` output parameter from the `runcmd` step
-        run: |
-          echo "The uname output was ${{ steps.runcmd.outputs.uname }}"
+          run: |
+            cd oh-my-zsh/helper-bins
+            cargo build --release --target=arm-unknown-linux-gnueabihf
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+
+      - name: build for amd64
+        uses: actions-rs/cargo@v1
+        with:
+          command: |
+            cd oh-my-zsh/helper-bins
+            cargo build --release
