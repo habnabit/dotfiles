@@ -6,7 +6,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
     name: build hab-prompt-utils binaries
 
     # env:
@@ -19,6 +19,7 @@ jobs:
           - arm-unknown-linux-gnueabihf
           - x86_64-unknown-freebsd
           - x86_64-unknown-linux-musl
+        os: [ubuntu-20.04]
         include:
           - build: macos
             os: macos-latest
@@ -46,8 +47,8 @@ jobs:
         env:
           cache-name: cargo_cross
         with:
-          path: ~/.cargo/bin/cargo-cross
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('~/.cargo/bin/cargo-cross') }}
+          path: ~/.cargo/bin/cross
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('~/.cargo/bin/cross') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
