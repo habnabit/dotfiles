@@ -33,6 +33,7 @@ jobs:
           toolchain: stable
           profile: minimal
           target: ${{ matrix.target }}
+          components: llvm-tools-preview
 
       - uses: actions-rs/cargo@v1
         with:
