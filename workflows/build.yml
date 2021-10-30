@@ -19,10 +19,10 @@ jobs:
           - arm-unknown-linux-gnueabihf
           - x86_64-unknown-freebsd
           - x86_64-unknown-linux-musl
-      include:
-        - build: macos
-          os: macos-latest
-          target: x86_64-apple-darwin
+        include:
+          - build: macos
+            os: macos-latest
+            target: x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v2.1.0
