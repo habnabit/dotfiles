@@ -20,7 +20,7 @@ jobs:
 
           install: |
             apt-get update \
-              && apt-get install -y curl \
+              && apt-get install -y curl capnproto grep \
               && rm -rf /var/lib/apt/lists/*
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
               | sh -s -- -y --default-host=arm-unknown-linux-gnueabihf
