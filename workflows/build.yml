@@ -9,17 +9,20 @@ jobs:
     runs-on: ubuntu-20.04
     name: build hab-prompt-utils binaries
 
-    env:
-      RUSTFLAGS: "-C linker=rust-lld"
+    # env:
+    #   RUSTFLAGS: "-C linker=rust-lld"
 
     strategy:
       fail-fast: false
       matrix:
         target:
           - arm-unknown-linux-gnueabihf
-          - x86_64-apple-darwin
           - x86_64-unknown-freebsd
           - x86_64-unknown-linux-musl
+      include:
+        - build: macos
+          os: macos-latest
+          target: x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v2.1.0
@@ -35,7 +38,23 @@ jobs:
           target: ${{ matrix.target }}
           components: llvm-tools-preview
 
-      - uses: actions-rs/cargo@v1
+      - name: deal with rust cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: cache cargo-cross
+        uses: actions/cache@v2
+        env:
+          cache-name: cargo_cross
+        with:
+          path: ~/.cargo/bin/cargo-cross
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('~/.cargo/bin/cargo-cross') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
