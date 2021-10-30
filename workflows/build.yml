@@ -26,8 +26,15 @@ jobs:
               | sh -s -- -y --default-host=arm-unknown-linux-gnueabihf
 
           run: |
+            source $HOME/.cargo/env
             cd oh-my-zsh/helper-bins
             cargo build --release --target=arm-unknown-linux-gnueabihf
+
+  build-2:
+    runs-on: ubuntu-18.04
+    name: build hab-prompt-utils linux binaries (alt??)
+    steps:
+      - uses: actions/checkout@v2.1.0
 
       - name: install rust
         uses: actions-rs/toolchain@v1
