@@ -9,7 +9,11 @@ jobs:
     runs-on: ubuntu-18.04
     name: build hab-prompt-utils binaries
 
+    env:
+      RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+
     strategy:
+      fail-fast: false
       matrix:
         target:
           - arm-unknown-linux-gnueabihf
