@@ -20,10 +20,10 @@ jobs:
 
           install: |
             apt-get update \
-              && apt-get install -y curl capnproto grep \
+              && apt-get install -y build-essential curl capnproto grep \
               && rm -rf /var/lib/apt/lists/*
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-              | sh -s -- -y --default-host=arm-unknown-linux-gnueabihf
+              | sh -s -- -y --profile minimal --default-host=arm-unknown-linux-gnueabihf
 
           run: |
             source $HOME/.cargo/env
@@ -38,6 +38,12 @@ jobs:
 
       - name: install rust
         uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: install tools
+        run: sudo apt-get install -y build-essential capnproto
 
       - name: build for amd64
         uses: actions-rs/cargo@v1
