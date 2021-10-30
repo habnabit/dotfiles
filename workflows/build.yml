@@ -10,7 +10,7 @@ jobs:
     name: build hab-prompt-utils binaries
 
     env:
-      RUSTFLAGS: "-C linker-flavor=ld.lld"
+      RUSTFLAGS: "-C linker=lld"
 
     strategy:
       fail-fast: false
