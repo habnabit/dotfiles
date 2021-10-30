@@ -1,0 +1,159 @@
+on:
+  push:
+    branches:
+      - gha-builder
+
+jobs:
+  build-linux:
+    name: build on linux
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - arm-unknown-linux-gnueabihf
+          - x86_64-unknown-freebsd
+          - x86_64-unknown-linux-musl
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+
+      - name: login to ghcr
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: install tools
+        run: sudo apt-get install -y build-essential capnproto musl-tools
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: deal with rust cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: target-${{ matrix.target }}
+
+      - name: cache cargo-cross
+        id: cache-cargo-cross
+        uses: actions/cache@v2
+        env:
+          cache-name: cargo_cross_git
+        with:
+          path: ~/.cargo/bin/cross
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('~/.cargo/bin/cross') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: build cargo-cross
+        if: steps.cache-cargo-cross.outputs.cache-hit != 'true'
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --force --git https://github.com/rust-embedded/cross
+
+      - name: set up docker buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: build cross image
+        uses: docker/build-push-action@v2
+        with:
+          context: _cross-builder
+          build-args: |
+            CROSS_BASE=${{ matrix.target }}
+          tags: habnabit/cross:${{ matrix.target }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target ${{ matrix.target }} --release
+
+      - name: copy out
+        uses: actions/upload-artifact@v2
+        with:
+          name: prompt-utils-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hab-prompt-utils
+          retention-days: 1
+
+  build-macos:
+    name: build on macos
+    runs-on: macos-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+
+      - name: install tools
+        run: |
+          brew install capnp
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: deal with rust cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target ${{ matrix.target }} --release
+
+      - name: copy out
+        uses: actions/upload-artifact@v2
+        with:
+          name: prompt-utils-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hab-prompt-utils
+          retention-days: 1
+
+  commit:
+    name: commit results
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+        with:
+          ref: main
+
+      - name: download the artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: oh-my-zsh/helper-bins
+
+      - name: copy in
+        run: |
+          cd oh-my-zsh/helper-bins
+          mv ./prompt-utils-arm-unknown-linux-gnueabihf/hab-prompt-utils lfs-Linux-armv6l
+          mv ./prompt-utils-x86_64-apple-darwin/hab-prompt-utils lfs-Darwin-x86_64
+          mv ./prompt-utils-x86_64-unknown-freebsd/hab-prompt-utils lfs-FreeBSD-amd64
+          mv ./prompt-utils-x86_64-unknown-linux-musl/hab-prompt-utils lfs-Linux-x86_64
+          chmod +x */hab-prompt-utils
+
+      - name: and commit
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: auto built binaries
