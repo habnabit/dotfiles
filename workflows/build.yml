@@ -8,56 +8,33 @@ jobs:
   build:
     runs-on: ubuntu-18.04
     name: build hab-prompt-utils binaries
+
+    matrix:
+      target:
+        - arm-unknown-linux-gnueabihf
+        - x86_64-apple-darwin
+        - x86_64-unknown-freebsd
+        - x86_64-unknown-linux-musl
+
     steps:
       - uses: actions/checkout@v2.1.0
 
-      - name: build on armv7+linux for armv6
-        uses: uraimo/run-on-arch-action@v2.0.5
-        with:
-          arch: armv7
-          distro: ubuntu18.04
-          githubToken: ${{ github.token }}
-
-          setup: |
-            mkdir -p "${PWD}/artifacts"
-          dockerRunArgs: |
-            --volume "${PWD}/artifacts:/artifacts"
-
-          install: |
-            apt-get update \
-              && apt-get install -y build-essential curl capnproto grep \
-              && rm -rf /var/lib/apt/lists/*
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-              | sh -s -- -y --profile minimal --default-host=arm-unknown-linux-gnueabihf
-
-          run: |
-            source $HOME/.cargo/env
-            cd oh-my-zsh/helper-bins
-            cargo build --release --target=arm-unknown-linux-gnueabihf
-            cp target/arm-unknown-linux-gnueabihf/release/hab-prompt-utils /artifacts/armv6
-
-    # runs-on: ubuntu-18.04
-    # name: build hab-prompt-utils linux binaries (alt??)
-    # steps:
-    #   - uses: actions/checkout@v2.1.0
+      - name: install tools
+        run: sudo apt-get install -y build-essential capnproto musl-tools
 
       - name: install rust
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
 
-      - name: install tools
-        run: sudo apt-get install -y build-essential capnproto
-
-      - name: build for amd64
-        uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1
         with:
+          use-cross: true
           command: build
-          args: --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+          args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
 
       - name: copy out
         run: |
-          cp -v artifacts/armv6 oh-my-zsh/helper-bins/lfs-Linux-armv6l/hab-prompt-utils
-          cp -v target/release/hab-prompt-utils oh-my-zsh/helper-bins/lfs-Linux-x86_64/hab-prompt-utils
           git status
