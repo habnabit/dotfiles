@@ -74,7 +74,6 @@ jobs:
             CROSS_BASE=${{ matrix.target }}
           tags: habnabit/cross:${{ matrix.target }}
           load: true
-          push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
