@@ -1,0 +1,130 @@
+on: [push]
+# on:
+#   push:
+#     paths:
+#       - 'oh-my-zsh/helper-bins/**'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-20.04
+    name: build on linux
+
+    # env:
+    #   RUSTFLAGS: "-C linker=rust-lld"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - arm-unknown-linux-gnueabihf
+          - x86_64-unknown-freebsd
+          - x86_64-unknown-linux-musl
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+
+      - name: install tools
+        run: sudo apt-get install -y build-essential capnproto musl-tools
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: deal with rust cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: cache cargo-cross
+        id: cache-cargo-cross
+        uses: actions/cache@v2
+        env:
+          cache-name: cargo_cross_git
+        with:
+          path: ~/.cargo/bin/cross
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('~/.cargo/bin/cross') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: build cargo-cross
+        if: steps.cache-cargo-cross.outputs.cache-hit != 'true'
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --force --git https://github.com/rust-embedded/cross
+
+      - name: set up docker buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: build cross image
+        uses: docker/build-push-action@v2
+        with:
+          context: oh-my-zsh/helper-bins/_cross-builder
+          build-args: |
+            CROSS_BASE=${{ matrix.target }}
+          tags: habnabit/cross:${{ matrix.target }}
+          # push: true
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v1 
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+
+      - name: ok what
+        run: find . -name hab-prompt-utils
+
+      - name: copy out
+        uses: actions/upload-artifact@v2
+        with:
+          name: prompt-utils-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hab-prompt-utils
+          retention-days: 1
+
+  build-macos:
+    runs-on: macos-latest
+    name: build on macos
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: deal with rust cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+
+      - name: copy out
+        uses: actions/upload-artifact@v2
+        with:
+          name: prompt-utils-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hab-prompt-utils
+          retention-days: 1
