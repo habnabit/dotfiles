@@ -61,8 +61,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: oh-my-zsh/helper-bins/_cross-builder
-          build-args:
-            - CROSS_BASE=${{ matrix.target }}-0.2.1
+          build-args: |
+            CROSS_BASE=${{ matrix.target }}-0.2.1
           tags: habnabit/cross:${{ matrix.target }}
           # push: true
           # cache-from: type=gha
