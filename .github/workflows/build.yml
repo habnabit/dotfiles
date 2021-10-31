@@ -62,7 +62,7 @@ jobs:
       - name: build cross image
         uses: docker/build-push-action@v2
         with:
-          context: oh-my-zsh/helper-bins/_cross-builder
+          context: _cross-builder
           build-args: |
             CROSS_BASE=${{ matrix.target }}
           tags: habnabit/cross:${{ matrix.target }}
@@ -81,7 +81,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+          args: --target ${{ matrix.target }} --release
 
       - name: ok what
         run: find . -name hab-prompt-utils
@@ -120,7 +120,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+          args: --target ${{ matrix.target }} --release
 
       - name: copy out
         uses: actions/upload-artifact@v2
