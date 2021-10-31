@@ -23,9 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2.1.0
 
-      - name: install tools
-        run: sudo apt-get install -y build-essential capnproto musl-tools
-
       - name: install rust
         uses: actions-rs/toolchain@v1
         with:
@@ -37,6 +34,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
 
       - name: cache cargo-cross
+        id: cache-cargo-cross
         uses: actions/cache@v2
         env:
           cache-name: cargo_cross_git
@@ -48,7 +46,8 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
 
-      - name: rust build
+      - name: build cargo-cross
+        if: steps.cache-cargo-cross.outputs.cache-hit != 'true'
         uses: actions-rs/cargo@v1
         with:
           command: install
@@ -80,6 +79,9 @@ jobs:
           use-cross: true
           command: build
           args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+
+      - name: ok what
+        run: find . -name hab-prompt-utils
 
       - name: copy out
         uses: actions/upload-artifact@v2
