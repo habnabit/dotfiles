@@ -22,9 +22,15 @@ extern crate tokio_process;
 extern crate tokio_service;
 extern crate whoami;
 
+#[cfg(debug_assertions)]
 pub mod plugins_capnp {
     include!(concat!(env!("OUT_DIR"), "/plugins_capnp.rs"));
 }
+
+#[cfg(not(debug_assertions))]
+pub mod _plugins_capnp;
+#[cfg(not(debug_assertions))]
+pub use _plugins_capnp as plugins_capnp;
 
 pub mod colors;
 pub mod directories;
