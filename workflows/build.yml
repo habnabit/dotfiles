@@ -39,7 +39,7 @@ jobs:
       - name: cache cargo-cross
         uses: actions/cache@v2
         env:
-          cache-name: cargo_cross
+          cache-name: cargo_cross_git
         with:
           path: ~/.cargo/bin/cross
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('~/.cargo/bin/cross') }}
@@ -47,6 +47,12 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --git https://github.com/rust-embedded/cross
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v1
@@ -105,7 +111,6 @@ jobs:
       - name: rust build
         uses: actions-rs/cargo@v1
         with:
-          use-cross: true
           command: build
           args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
 
