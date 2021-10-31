@@ -5,9 +5,9 @@ on: [push]
 #       - 'oh-my-zsh/helper-bins/**'
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    name: build hab-prompt-utils binaries
+  build-linux:
+    runs-on: ubuntu-20.04
+    name: build on linux
 
     # env:
     #   RUSTFLAGS: "-C linker=rust-lld"
@@ -19,11 +19,6 @@ jobs:
           - arm-unknown-linux-gnueabihf
           - x86_64-unknown-freebsd
           - x86_64-unknown-linux-musl
-        os: [ubuntu-20.04]
-        include:
-          - build: macos
-            os: macos-latest
-            target: x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v2.1.0
@@ -37,7 +32,6 @@ jobs:
           toolchain: stable
           profile: minimal
           target: ${{ matrix.target }}
-          components: llvm-tools-preview
 
       - name: deal with rust cache
         uses: Swatinem/rust-cache@v1
@@ -62,7 +56,7 @@ jobs:
         with:
           context: oh-my-zsh/helper-bins/_cross-builder
           build-args: |
-            CROSS_BASE=${{ matrix.target }}-0.2.1
+            CROSS_BASE=${{ matrix.target }}
           tags: habnabit/cross:${{ matrix.target }}
           # push: true
           # cache-from: type=gha
@@ -73,6 +67,40 @@ jobs:
       #   with:
       #     username: ${{ secrets.DOCKERHUB_USERNAME }}
       #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: rust build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
+
+      - name: copy out
+        run: |
+          git status
+
+  build-macos:
+    runs-on: macos-latest
+    name: build on macos
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+
+      - name: install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: deal with rust cache
+        uses: Swatinem/rust-cache@v1
 
       - name: rust build
         uses: actions-rs/cargo@v1
