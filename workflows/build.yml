@@ -52,7 +52,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: --git https://github.com/rust-embedded/cross
+          args: --force --git https://github.com/rust-embedded/cross
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v1
@@ -82,8 +82,11 @@ jobs:
           args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
 
       - name: copy out
-        run: |
-          git status
+        uses: actions/upload-artifact@v2
+        with:
+          name: prompt-utils-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hab-prompt-utils
+          retention-days: 1
 
   build-macos:
     runs-on: macos-latest
@@ -115,5 +118,8 @@ jobs:
           args: --target ${{ matrix.target }} --release --manifest-path oh-my-zsh/helper-bins/Cargo.toml
 
       - name: copy out
-        run: |
-          git status
+        uses: actions/upload-artifact@v2
+        with:
+          name: prompt-utils-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/hab-prompt-utils
+          retention-days: 1
