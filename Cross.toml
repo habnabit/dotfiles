@@ -1,0 +1,8 @@
+[target.arm-unknown-linux-gnueabihf]
+image = "habnabit/cross:arm-unknown-linux-gnueabihf"
+
+[target.x86_64-unknown-freebsd]
+image = "habnabit/cross:x86_64-unknown-freebsd"
+
+[target.x86_64-unknown-linux-musl]
+image = "habnabit/cross:x86_64-unknown-linux-musl"
