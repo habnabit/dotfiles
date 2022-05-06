@@ -64,10 +64,16 @@ fn color_and_opposite_by_direness(base: HSL) -> (HSL, HSL) {
 pub fn make_theme(input: &str) -> BTreeMap<&'static str, HSL> {
     use rand::distributions::{Distribution, Uniform};
     let mut rng = rng_of_str(input);
-    let base = HSL {
-        h: Uniform::new(0.0, 360.0).sample(&mut rng),
-        s: Uniform::new(0.8, 1.0).sample(&mut rng),
-        l: Uniform::new(0.5, 0.75).sample(&mut rng),
+    let base = loop {
+        let ret = HSL {
+            h: Uniform::new(0.0, 360.0).sample(&mut rng),
+            s: Uniform::new(0.8, 1.0).sample(&mut rng),
+            l: Uniform::new(0.5, 0.75).sample(&mut rng),
+        };
+        if ret.l < 0.55 {
+            continue;
+        }
+        break ret;
     };
     let cwd = base.rotate(120.0);
     let vcs = base.rotate(240.0);
