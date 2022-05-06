@@ -1,6 +1,4 @@
 #![allow(unused_parens)]
-#![cfg_attr(test, feature(plugin))]
-#![cfg_attr(test, plugin(fnconcat))]
 
 #[macro_use]
 extern crate lazy_static;
