@@ -4,8 +4,6 @@ use std::io::ErrorKind::NotFound;
 use std::os::unix::fs::symlink;
 use std::{fs, io, path};
 
-use tempfile::NamedTempFileOptions;
-
 use super::errors::{PromptErrors, PromptResult as Result};
 use super::term::confirm;
 
@@ -94,9 +92,9 @@ fn find_files_to_assemble(source: &path::Path) -> Result<Vec<path::PathBuf>> {
 fn assemble_files(source: &path::Path, target: &path::Path) -> Result<()> {
     let files = find_files_to_assemble(source)?;
     maybe_mkdir(target)?;
-    let out = NamedTempFileOptions::new()
+    let out = tempfile::Builder::new()
         .prefix("_tmp")
-        .create_in(target.parent().unwrap_or_else(|| unimplemented!()));
+        .tempfile_in(target.parent().unwrap_or_else(|| unimplemented!()));
     let mut out = out?;
     for file in files {
         let mut file = fs::OpenOptions::new().read(true).open(file)?;

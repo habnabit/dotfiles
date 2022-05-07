@@ -22,7 +22,7 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 regex = "1.5.5"
 serde_json = "1.0.81"
-tempfile = "^2.2.0"
+tempfile = "3.3.0"
 thiserror = "1.0.31"
 tokio = { version = "1.18.1", features = ["full"] }
 tracing = "0.1.34"
