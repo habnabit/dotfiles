@@ -3,6 +3,7 @@ use std::path::{self, Path, PathBuf};
 use async_trait::async_trait;
 
 use super::errors::PromptResult as Result;
+use crate::errors::PromptErrors;
 use crate::utils::{format_counts, path_dev, FileCounts};
 use crate::vc::STATUS_ORDER;
 
@@ -119,23 +120,13 @@ impl PluginLoader {
     }
 
     pub async fn git_head_branch(&self) -> Result<String> {
-        // XXX query branch only
-        todo!()
-        // let ret = find_vc_root(test_vc_dir)
-        //     .and_then(|o| {
-        //         let status = match o {
-        //             Some(v) => v,
-        //             None => return Ok(None),
-        //         };
-        //         match status.results.get_root_as_reader().get_branch()? {
-        //             "" => Ok(None),
-        //             s => Ok(Some(s.into())),
-        //         }
-        //     })
-        //     .and_then(|o| match o {
-        //         Some(head) => Ok(head),
-        //         None => Err(PromptErrors::NoHead),
-        //     });
-        // Box::new(ret)
+        let status = self.find_vc_root().await?;
+        match status {
+            Some(PluginVcsStatus {
+                inner: VcsStatus { branch, .. },
+                ..
+            }) if !branch.is_empty() => Ok(branch),
+            _ => Err(PromptErrors::NoHead),
+        }
     }
 }
