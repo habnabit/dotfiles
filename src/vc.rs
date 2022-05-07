@@ -5,12 +5,13 @@ use std::str::from_utf8;
 
 use async_trait::async_trait;
 use tokio::io::AsyncBufReadExt;
-use tokio::process::Command;
+use tokio::process::{Child, Command};
 
 use super::errors::PromptResult as Result;
 use super::utils::IncrementalMap;
 use crate::directories::FileCounts;
 use crate::plugins::{VcsPlugin, VcsStatus};
+use crate::utils::ITERATION_LIMIT;
 
 pub const GIT_INDEX_STATII: &'static str = "TMADRC";
 pub const GIT_WORKING_STATII: &'static str = "TMD";
@@ -22,6 +23,29 @@ fn tolower(c: char) -> char {
 
 fn is_directory_usable(p: &Path) -> bool {
     p.metadata().is_ok()
+}
+
+async fn read_status_lines<F>(mut func: F, child: &mut Child) -> Result<FileCounts>
+where
+    F: FnMut(&mut FileCounts, &str),
+{
+    let mut ret: FileCounts = Default::default();
+    {
+        let stdout = tokio::io::BufReader::new(child.stdout.take().unwrap());
+        let mut lines = stdout.lines();
+        let mut limit = ITERATION_LIMIT;
+        while let Some(line) = lines.next_line().await? {
+            if limit == 0 {
+                ret.truncated = true;
+                break;  // the break ending the loop closes the stdout/lines
+            }
+            func(&mut ret, &line);
+            limit -= 1;
+        }
+    }
+    let status_out = child.wait().await;
+    tracing::info!(?status_out, "process done");
+    Ok(ret)
 }
 
 #[derive(Clone)]
@@ -48,17 +72,7 @@ impl GitRequest {
             .stdout(Stdio::piped())
             .kill_on_drop(true)
             .spawn()?;
-        let mut ret: FileCounts = Default::default();
-        {
-            let stdout = tokio::io::BufReader::new(child.stdout.take().unwrap());
-            let mut lines = stdout.lines();
-            while let Some(line) = lines.next_line().await? {
-                update_counts_git(&mut ret, &line);
-            }
-        }
-        let status_out = child.wait().await;
-        tracing::info!(?status_out, "git done");
-        Ok(ret)
+        read_status_lines(update_counts_git, &mut child).await
     }
 
     async fn get_head_branch(&self) -> Result<Option<String>> {
@@ -172,17 +186,7 @@ impl HgRequest {
             .stdout(Stdio::piped())
             .kill_on_drop(true)
             .spawn()?;
-        let mut ret: FileCounts = Default::default();
-        {
-            let stdout = tokio::io::BufReader::new(child.stdout.take().unwrap());
-            let mut lines = stdout.lines();
-            while let Some(line) = lines.next_line().await? {
-                update_counts_hg(&mut ret, &line);
-            }
-        }
-        let status_out = child.wait().await;
-        tracing::info!(?status_out, "hg done");
-        Ok(ret)
+        read_status_lines(update_counts_hg, &mut child).await
     }
 
     async fn get_branch(&self) -> Result<String> {

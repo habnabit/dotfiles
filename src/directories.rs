@@ -7,8 +7,8 @@ use super::utils::{limited_foreach, IncrementalMap};
 
 #[derive(Debug, Clone, Default)]
 pub struct FileCounts {
-    map: BTreeMap<char, usize>,
-    truncated: bool,
+    pub map: BTreeMap<char, usize>,
+    pub truncated: bool,
 }
 
 impl FileCounts {

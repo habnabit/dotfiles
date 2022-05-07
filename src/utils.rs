@@ -3,18 +3,20 @@ use std::path::Path;
 
 use super::errors::PromptResult as Result;
 
-const ITERATION_LIMIT: usize = 1000;
+pub const ITERATION_LIMIT: usize = 1000;
 
 pub fn limited_foreach<I, F>(iter: I, mut func: F) -> Result<bool>
 where
     I: IntoIterator,
     F: FnMut(I::Item) -> Result<()>,
 {
-    for (e, item) in iter.into_iter().enumerate() {
-        if e >= ITERATION_LIMIT {
+    let mut limit = ITERATION_LIMIT;
+    for item in iter {
+        if limit == 0 {
             return Ok(true);
         }
         func(item)?;
+        limit -= 1;
     }
     Ok(false)
 }
@@ -37,10 +39,6 @@ pub fn default_theme_seed() -> String {
         ret.push_str(seg);
     }
     ret
-}
-
-pub fn from_utf8(v: Vec<u8>) -> Result<String> {
-    Ok(String::from_utf8(v)?)
 }
 
 pub fn path_dev(path: &Path) -> Result<u64> {
