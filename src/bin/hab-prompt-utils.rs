@@ -8,10 +8,9 @@ use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
 use helper_bins::errors::PromptResult as Result;
 use helper_bins::installer::install_from_manifest;
-use helper_bins::plugins::{PluginLoader, VcsPlugin};
+use helper_bins::plugins::PluginLoader;
 use helper_bins::ssh_proxy::ssh_proxy_command;
 use helper_bins::utils::default_theme_seed;
-use helper_bins::vc::{git_head_branch, vc_status};
 use hsl::HSL;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
@@ -29,7 +28,7 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
 }
 
 async fn zsh_precmd_map(
-    timers: Option<(time::Duration, time::Duration)>, vcs: &dyn VcsPlugin,
+    timers: Option<(time::Duration, time::Duration)>, plugins: &PluginLoader,
 ) -> Result<BTreeMap<&'static str, String>> {
     let mut results = BTreeMap::new();
     if let Some((before, after)) = timers {
@@ -39,7 +38,7 @@ async fn zsh_precmd_map(
         results.insert("duration", "—".to_string());
     }
     results.insert("files", file_count()?);
-    let status = vc_status(vcs).await?;
+    let status = plugins.vc_status().await?;
     results.insert("vc", status);
     Ok(results)
 }
@@ -107,9 +106,9 @@ fn zsh_map_string(map: &BTreeMap<&'static str, String>) -> String {
 }
 
 async fn zsh_precmd(
-    timers: Option<(time::Duration, time::Duration)>, vcs: &dyn VcsPlugin,
+    timers: Option<(time::Duration, time::Duration)>, plugins: &PluginLoader,
 ) -> Result<()> {
-    let map = zsh_precmd_map(timers, vcs).await?;
+    let map = zsh_precmd_map(timers, plugins).await?;
     let map_str = zsh_map_string(&map);
     tokio::io::stdout().write_all(map_str.as_bytes()).await?;
     Ok(())
@@ -199,11 +198,11 @@ fn blocking_main(plugins: &PluginLoader) {
     .get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
         if let Some(_) = m.subcommand_matches("vc_status") {
-            hnd.block_on(vc_status(plugins))
+            hnd.block_on(plugins.vc_status())
         } else if let Some(_) = m.subcommand_matches("file_count") {
             file_count()
         } else if let Some(_) = m.subcommand_matches("git_head_branch") {
-            hnd.block_on(git_head_branch(plugins))
+            hnd.block_on(plugins.git_head_branch())
         } else {
             return;
         }

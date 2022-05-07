@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use super::errors::PromptResult as Result;
 
@@ -70,4 +71,13 @@ pub fn default_theme_seed() -> String {
         ret.push_str(seg);
     }
     ret
+}
+
+pub fn from_utf8(v: Vec<u8>) -> Result<String> {
+    Ok(String::from_utf8(v)?)
+}
+
+pub fn path_dev(path: &Path) -> Result<u64> {
+    use std::os::unix::fs::MetadataExt;
+    Ok(path.metadata().map(|m| m.dev())?)
 }

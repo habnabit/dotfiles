@@ -8,6 +8,8 @@ pub enum PromptErrors {
     Fmt(#[from] std::fmt::Error),
     #[error("std::string::FromUtf8Error: {0:?}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
+    #[error("std::str::Utf8Error: {0:?}")]
+    Utf8Error(#[from] std::str::Utf8Error),
     #[error("tokio::task::JoinError: {0:?}")]
     JoinError(#[from] tokio::task::JoinError),
 
