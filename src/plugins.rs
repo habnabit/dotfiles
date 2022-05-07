@@ -1,4 +1,4 @@
-use std::path::{self, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
 
@@ -39,11 +39,6 @@ pub struct PluginLoader {
 impl PluginLoader {
     pub fn new() -> PluginLoader {
         PluginLoader { plugins: vec![] }
-    }
-
-    fn plugin_dir(&self) -> Option<path::PathBuf> {
-        // XXX: real location searching
-        todo!()
     }
 
     pub fn load_builtin_plugins(mut self) -> Self {
