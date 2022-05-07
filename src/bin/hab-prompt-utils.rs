@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::future::Future;
 use std::io::stdout;
 use std::{path, process, time};
 
@@ -12,7 +11,7 @@ use helper_bins::installer::install_from_manifest;
 use helper_bins::plugins::{PluginLoader, VcsPlugin};
 use helper_bins::ssh_proxy::ssh_proxy_command;
 use helper_bins::utils::default_theme_seed;
-use helper_bins::vc::{git_head_branch, vc_status, Git};
+use helper_bins::vc::{git_head_branch, vc_status};
 use hsl::HSL;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;

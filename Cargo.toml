@@ -25,6 +25,7 @@ rand_chacha = "^0.2.1"
 regex = "*"
 serde_json = "*"
 tempfile = "^2.2.0"
+thiserror = "1.0.31"
 tokio = { version = "1", features = ["full"] }
 whoami = "1.1.3"
 

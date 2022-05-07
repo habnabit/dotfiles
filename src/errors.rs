@@ -1,68 +1,22 @@
-use std::str::Utf8Error;
-use std::{error, fmt, io};
+use thiserror::Error;
 
-use tokio::task::JoinError;
-
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum PromptErrors {
-    Fmt,
-    Io(io::Error),
-    Utf8(Utf8Error),
-    Boxed(Box<dyn error::Error>),
+    #[error("std::io::Error: {0:?}")]
+    Io(#[from] std::io::Error),
+    #[error("std::fmt::Error: {0:?}")]
+    Fmt(#[from] std::fmt::Error),
+    #[error("std::string::FromUtf8Error: {0:?}")]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
+    #[error("tokio::task::JoinError: {0:?}")]
+    JoinError(#[from] tokio::task::JoinError),
+
+    #[error("invalid ssh-proxy host {0:?}")]
     InvalidSshProxy(String),
+    #[error("couldn't install a file: {0}")]
     InstallationError(String),
+    #[error("no HEAD found")]
     NoHead,
-}
-
-impl error::Error for PromptErrors {
-    fn description(&self) -> &str {
-        use self::PromptErrors::*;
-        match self {
-            &Fmt => "format error",
-            &Io(_) => "io error",
-            &Utf8(_) => "utf8 decode error",
-            &Boxed(_) => "upstream error",
-            &InvalidSshProxy(_) => "invalid ssh-proxy host",
-            &InstallationError(_) => "couldn't install a file",
-            &NoHead => "no HEAD found",
-        }
-    }
-}
-
-impl fmt::Display for PromptErrors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl From<fmt::Error> for PromptErrors {
-    fn from(_: fmt::Error) -> PromptErrors {
-        PromptErrors::Fmt
-    }
-}
-
-impl From<io::Error> for PromptErrors {
-    fn from(e: io::Error) -> PromptErrors {
-        PromptErrors::Io(e)
-    }
-}
-
-impl From<Utf8Error> for PromptErrors {
-    fn from(e: Utf8Error) -> PromptErrors {
-        PromptErrors::Utf8(e)
-    }
-}
-
-impl From<::std::string::FromUtf8Error> for PromptErrors {
-    fn from(e: ::std::string::FromUtf8Error) -> PromptErrors {
-        PromptErrors::Utf8(e.utf8_error())
-    }
-}
-
-impl From<JoinError> for PromptErrors {
-    fn from(_: JoinError) -> Self {
-        todo!()
-    }
 }
 
 pub type PromptResult<T> = Result<T, PromptErrors>;

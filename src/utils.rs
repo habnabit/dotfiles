@@ -1,7 +1,4 @@
 use std::collections::BTreeMap;
-use std::path::Path;
-
-use async_trait::async_trait;
 
 use super::errors::PromptResult as Result;
 
