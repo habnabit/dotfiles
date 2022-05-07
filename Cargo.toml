@@ -12,8 +12,8 @@ panic = 'abort'
 [features]
 
 [dependencies]
-async-trait = "0.1.53"
 ansi_term = "~0.11"
+async-trait = "0.1.53"
 blake2 = "^0.8.1"
 byteorder = "*"
 clap = {version = "*", features = ["unstable"]}

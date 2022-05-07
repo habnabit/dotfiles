@@ -1,6 +1,8 @@
 use std::str::Utf8Error;
 use std::{error, fmt, io};
 
+use tokio::task::JoinError;
+
 #[derive(Debug)]
 pub enum PromptErrors {
     Fmt,
@@ -54,6 +56,12 @@ impl From<Utf8Error> for PromptErrors {
 impl From<::std::string::FromUtf8Error> for PromptErrors {
     fn from(e: ::std::string::FromUtf8Error) -> PromptErrors {
         PromptErrors::Utf8(e.utf8_error())
+    }
+}
+
+impl From<JoinError> for PromptErrors {
+    fn from(_: JoinError) -> Self {
+        todo!()
     }
 }
 

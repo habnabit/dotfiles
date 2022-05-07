@@ -74,15 +74,3 @@ pub fn default_theme_seed() -> String {
     }
     ret
 }
-
-#[derive(Debug, Clone)]
-pub struct VcsStatus {
-    pub branch: String,
-    pub display_branch: String,
-    pub counts: FileCounts,
-}
-
-#[async_trait]
-pub trait VcsPlugin {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcsStatus>>;
-}

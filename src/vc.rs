@@ -7,7 +7,8 @@ use async_trait::async_trait;
 
 use super::errors::{PromptErrors, PromptResult as Result};
 use super::utils::{format_counts, IncrementalMap};
-use crate::utils::{FileCounts, VcsPlugin, VcsStatus};
+use crate::plugins::{VcStatus, VcsPlugin};
+use crate::utils::FileCounts;
 
 const GIT_INDEX_STATII: &'static str = "TMADRC";
 const GIT_WORKING_STATII: &'static str = "TMD";
@@ -175,7 +176,7 @@ pub struct Git;
 
 #[async_trait]
 impl VcsPlugin for Git {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcsStatus>> {
+    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcStatus>> {
         todo!()
     }
     // let handle = self.0.clone();
@@ -276,7 +277,7 @@ pub struct Hg;
 
 #[async_trait]
 impl VcsPlugin for Hg {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcsStatus>> {
+    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcStatus>> {
         todo!()
     }
     // fn status(&self) -> () {
@@ -342,38 +343,21 @@ fn path_dev(path: &Path) -> Result<u64> {
     Ok(path.metadata().map(|m| m.dev())?)
 }
 
-async fn vc_root_step(vcs: &dyn VcsPlugin, top_dev: u64, cur: path::PathBuf) -> Result<Option<()>> {
-    todo!()
-    // enum Step {
-    //     Done(Result<Option<VcStatus>>),
-    //     TryNext(path::PathBuf),
-    // }
-    // let ret = test_vc_dir
-    //     .call(cur.clone())
-    //     .map(move |o| {
-    //         if let Some(s) = o {
-    //             Step::Done(Ok(Some(s)))
-    //         } else if let Some(p) = cur.parent() {
-    //             match path_dev(p) {
-    //                 Ok(d) if d == top_dev => Step::TryNext(p.into()),
-    //                 Ok(_) => Step::Done(Ok(None)),
-    //                 Err(e) => Step::Done(Err(e.into())),
-    //             }
-    //         } else {
-    //             Step::Done(Ok(None))
-    //         }
-    //     })
-    //     .and_then(move |s| match s {
-    //         Step::Done(r) => Box::new(future::done(r)),
-    //         Step::TryNext(p) => vc_root_step(test_vc_dir, top_dev, p),
-    //     });
-    // Box::new(ret)
-}
-
-async fn find_vc_root(vcs: &dyn VcsPlugin) -> Result<Option<()>> {
+async fn find_vc_root(vcs: &dyn VcsPlugin) -> Result<Option<VcStatus>> {
     let cwd = env::current_dir()?;
     let top_dev = path_dev(&cwd)?;
-    vc_root_step(vcs, top_dev, cwd).await
+    let mut cur: &Path = cwd.as_path();
+    loop {
+        if let Some(status) = vcs.status(cur, false).await? {
+            return Ok(Some(status));
+        } else if let Some(parent) = cur.parent() {
+            if path_dev(parent)? == top_dev {
+                cur = parent;
+                continue;
+            }
+        }
+        return Ok(None);
+    }
 }
 
 fn from_utf8(v: Vec<u8>) -> Result<String> {
@@ -381,39 +365,24 @@ fn from_utf8(v: Vec<u8>) -> Result<String> {
 }
 
 pub async fn vc_status(vcs: &dyn VcsPlugin) -> Result<String> {
-    todo!()
-    // let ret = find_vc_root(test_vc_dir).map(|o| {
-    //     let status = match o {
-    //         Some(v) => v,
-    //         None => return "".into(),
-    //     };
-    //     use std::fmt::Write;
-    //     let mut ret = String::new();
-    //     // XXX less unwrap
-    //     let reader = status.results.get_root_as_reader();
-    //     write!(
-    //         ret,
-    //         "{} {}",
-    //         status.vc_name,
-    //         reader.get_display_branch().unwrap()
-    //     )
-    //     .unwrap();
-    //     let counts: Result<String> = reader.get_counts().map_err(Into::into).and_then(|c| {
-    //         let ret = format_counts(
-    //             STATUS_ORDER,
-    //             &btree_of_counts(&c)?,
-    //             c.get_truncated(),
-    //             false,
-    //         );
-    //         Ok(ret)
-    //     });
-    //     let counts = counts.unwrap();
-    //     if !counts.is_empty() {
-    //         write!(ret, ": {}", counts).unwrap();
-    //     }
-    //     ret
-    // });
-    // Box::new(ret)
+    let status = match find_vc_root(vcs).await? {
+        Some(v) => v,
+        None => return Ok("".into()),
+    };
+    use std::fmt::Write;
+    let mut ret = String::new();
+    // XXX less unwrap
+    write!(ret, "{} {}", status.vc_name, status.results.display_branch,).unwrap();
+    let counts = format_counts(
+        STATUS_ORDER,
+        &status.results.counts,
+        status.results.counts_truncated,
+        false,
+    );
+    if !counts.is_empty() {
+        write!(ret, ": {}", counts).unwrap();
+    }
+    Ok(ret)
 }
 
 pub async fn git_head_branch(vcs: &dyn VcsPlugin) -> Result<String> {

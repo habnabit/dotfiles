@@ -9,8 +9,9 @@ use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
 use helper_bins::errors::PromptResult as Result;
 use helper_bins::installer::install_from_manifest;
+use helper_bins::plugins::{PluginLoader, VcsPlugin};
 use helper_bins::ssh_proxy::ssh_proxy_command;
-use helper_bins::utils::{default_theme_seed, VcsPlugin};
+use helper_bins::utils::default_theme_seed;
 use helper_bins::vc::{git_head_branch, vc_status, Git};
 use hsl::HSL;
 use serde_json::json;
@@ -115,25 +116,20 @@ async fn zsh_precmd(
     Ok(())
 }
 
-fn run_in_loop<FN, Fut, T>(func: FN) -> T
-where
-    FN: FnOnce(&'static dyn VcsPlugin) -> Fut,
-    Fut: Future<Output = T>,
-{
-    let handle = Handle::current();
-    let fut = func(&Git);
-    handle.block_on(fut)
-}
-
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
+    let plugins = PluginLoader::new()
+        .load_builtin_plugins()
+        .load_plugins()
+        .await?;
     let () = Handle::current()
-        .spawn_blocking(blocking_main)
-        .await
-        .unwrap_or_else(|err| panic!("join error? {:?}", err));
+        .spawn_blocking(move || blocking_main(&plugins))
+        .await?;
+    Ok(())
 }
 
-fn blocking_main() {
+fn blocking_main(plugins: &PluginLoader) {
+    let hnd = Handle::current();
     let matches = clap_app!
     (hab_utils =>
      (version: "0.1")
@@ -184,11 +180,11 @@ fn blocking_main() {
     .get_matches();
     if let Some(m) = matches.subcommand_matches("emit") {
         if let Some(_) = m.subcommand_matches("vc_status") {
-            run_in_loop(vc_status)
+            hnd.block_on(vc_status(plugins))
         } else if let Some(_) = m.subcommand_matches("file_count") {
             file_count()
         } else if let Some(_) = m.subcommand_matches("git_head_branch") {
-            run_in_loop(git_head_branch)
+            hnd.block_on(git_head_branch(plugins))
         } else {
             return;
         }
@@ -202,7 +198,7 @@ fn blocking_main() {
         } else {
             None
         };
-        run_in_loop(move |test_vc_dir| zsh_precmd(durations, test_vc_dir))
+        hnd.block_on(zsh_precmd(durations, plugins))
     } else if let Some(m) = matches.subcommand_matches("color_theme") {
         let the_string = m
             .value_of("STRING")
