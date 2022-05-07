@@ -9,8 +9,8 @@ use tokio::process::Command;
 
 use super::errors::PromptResult as Result;
 use super::utils::IncrementalMap;
+use crate::directories::FileCounts;
 use crate::plugins::{VcsPlugin, VcsStatus};
-use crate::utils::FileCounts;
 
 pub const GIT_INDEX_STATII: &'static str = "TMADRC";
 pub const GIT_WORKING_STATII: &'static str = "TMD";
@@ -116,7 +116,6 @@ impl GitRequest {
             branch,
             display_branch,
             counts,
-            counts_truncated: false,
         })
     }
 
@@ -226,7 +225,6 @@ impl VcsPlugin for Hg {
             display_branch: branch.clone(),
             branch,
             counts,
-            counts_truncated: false,
         }))
     }
 }

@@ -3,8 +3,9 @@ use std::path::{Path, PathBuf};
 use async_trait::async_trait;
 
 use super::errors::PromptResult as Result;
+use crate::directories::FileCounts;
 use crate::errors::PromptErrors;
-use crate::utils::{format_counts, path_dev, FileCounts};
+use crate::utils::path_dev;
 use crate::vc::STATUS_ORDER;
 
 #[derive(Debug, Clone, Default)]
@@ -12,7 +13,6 @@ pub struct VcsStatus {
     pub branch: String,
     pub display_branch: String,
     pub counts: FileCounts,
-    pub counts_truncated: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -102,12 +102,7 @@ impl PluginLoader {
         let mut ret = String::new();
         // XXX less unwrap
         write!(ret, "{} {}", status.vc_name, status.inner.display_branch).unwrap();
-        let counts = format_counts(
-            STATUS_ORDER,
-            &status.inner.counts,
-            status.inner.counts_truncated,
-            false,
-        );
+        let counts = status.inner.counts.format_ordered(STATUS_ORDER, false);
         if !counts.is_empty() {
             write!(ret, ": {}", counts).unwrap();
         }
