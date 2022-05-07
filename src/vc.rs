@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{env, path, process};
 
 use async_trait::async_trait;
@@ -176,7 +176,7 @@ pub struct Git;
 
 #[async_trait]
 impl VcsPlugin for Git {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcStatus>> {
+    async fn status(&self, dir: PathBuf, branch_only: bool) -> Result<Option<VcStatus>> {
         todo!()
     }
     // let handle = self.0.clone();
@@ -277,7 +277,7 @@ pub struct Hg;
 
 #[async_trait]
 impl VcsPlugin for Hg {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcStatus>> {
+    async fn status(&self, dir: PathBuf, branch_only: bool) -> Result<Option<VcStatus>> {
         todo!()
     }
     // fn status(&self) -> () {
@@ -348,7 +348,7 @@ async fn find_vc_root(vcs: &dyn VcsPlugin) -> Result<Option<VcStatus>> {
     let top_dev = path_dev(&cwd)?;
     let mut cur: &Path = cwd.as_path();
     loop {
-        if let Some(status) = vcs.status(cur, false).await? {
+        if let Some(status) = vcs.status(cur.to_owned(), false).await? {
             return Ok(Some(status));
         } else if let Some(parent) = cur.parent() {
             if path_dev(parent)? == top_dev {

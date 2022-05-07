@@ -116,11 +116,31 @@ async fn zsh_precmd(
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber)?;
+
+    std::panic::set_hook(Box::new(|panic| {
+        if let Some(location) = panic.location() {
+            tracing::error!(
+                message = %panic,
+                panic.file = location.file(),
+                panic.line = location.line(),
+                panic.column = location.column(),
+            );
+        } else {
+            tracing::error!(message = %panic);
+        }
+    }));
+
     let plugins = PluginLoader::new()
         .load_builtin_plugins()
         .load_plugins()
         .await?;
+
     let () = Handle::current()
         .spawn_blocking(move || blocking_main(&plugins))
         .await?;

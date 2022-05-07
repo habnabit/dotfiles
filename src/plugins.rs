@@ -1,5 +1,4 @@
-use std::path;
-use std::path::Path;
+use std::path::{self, Path, PathBuf};
 
 use async_trait::async_trait;
 
@@ -22,7 +21,7 @@ pub struct VcStatus {
 
 #[async_trait]
 pub trait VcsPlugin {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcStatus>>;
+    async fn status(&self, dir: PathBuf, branch_only: bool) -> Result<Option<VcStatus>>;
 }
 
 #[derive(Clone, Copy)]
@@ -83,7 +82,11 @@ impl PluginLoader {
 
 #[async_trait]
 impl VcsPlugin for PluginLoader {
-    async fn status(&self, dir: &Path, branch_only: bool) -> Result<Option<VcStatus>> {
+    async fn status(&self, dir: PathBuf, branch_only: bool) -> Result<Option<VcStatus>> {
+        let mut set = tokio::task::JoinSet::new();
+        for p in &self.plugins {
+            set.spawn(p.vcs.status(dir.clone(), branch_only));
+        }
         todo!()
     }
 }
