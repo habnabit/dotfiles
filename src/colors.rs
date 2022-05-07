@@ -1,16 +1,18 @@
 use std::collections::BTreeMap;
 
-use blake2::Blake2b;
+use blake2::Blake2b512;
 use hsl::HSL;
 use rand_chacha::ChaChaRng;
 
 fn rng_of_str(input: &str) -> ChaChaRng {
-    use blake2::digest::{FixedOutput, Input};
-    let hashed = <Blake2b as Default>::default()
-        .chain(input.as_bytes())
-        .chain(b"\0")
-        .fixed_result();
-    let condensed = <byteorder::LE as byteorder::ByteOrder>::read_u64(hashed.as_slice());
+    use blake2::Digest;
+    let hashed = Blake2b512::new()
+        .chain_update(input.as_bytes())
+        .chain_update(b"\0")
+        .finalize();
+    let mut condensed = [0u8; 8];
+    condensed.copy_from_slice(&hashed.as_slice()[..8]);
+    let condensed = u64::from_le_bytes(condensed);
     <ChaChaRng as rand_chacha::rand_core::SeedableRng>::seed_from_u64(condensed)
 }
 

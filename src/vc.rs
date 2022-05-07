@@ -37,7 +37,7 @@ where
         while let Some(line) = lines.next_line().await? {
             if limit == 0 {
                 ret.truncated = true;
-                break;  // the break ending the loop closes the stdout/lines
+                break; // the break ending the loop closes the stdout/lines
             }
             func(&mut ret, &line);
             limit -= 1;
