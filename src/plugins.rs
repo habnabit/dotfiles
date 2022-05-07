@@ -10,9 +10,8 @@ use tokio_core::reactor::Handle;
 use tokio_process::CommandExt;
 use tokio_service;
 
-use super::plugins_capnp::{plugin, plugin_process, version_control_plugin};
-
 use super::errors::{PromptErrors, PromptResult as Result};
+use super::plugins_capnp::{plugin, plugin_process, version_control_plugin};
 use super::utils::OwnedMessage;
 use super::vc::{Git, Hg};
 

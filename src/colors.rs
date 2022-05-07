@@ -1,7 +1,8 @@
+use std::collections::BTreeMap;
+
 use blake2::Blake2b;
 use hsl::HSL;
 use rand_chacha::ChaChaRng;
-use std::collections::BTreeMap;
 
 fn rng_of_str(input: &str) -> ChaChaRng {
     use blake2::digest::{FixedOutput, Input};

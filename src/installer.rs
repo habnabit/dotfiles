@@ -9,9 +9,7 @@ use tempfile::NamedTempFileOptions;
 use super::errors::{PromptErrors, PromptResult as Result};
 use super::term::confirm;
 
-fn maybe_mkdir(
-    for_file_at: &path::Path,
-) -> Result<()> {
+fn maybe_mkdir(for_file_at: &path::Path) -> Result<()> {
     if let Some(parent) = for_file_at.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -129,13 +127,15 @@ fn action_uninstall(source: &path::Path, target: &path::Path) -> Result<()> {
     match fs::read_link(target) {
         Err(ref e) if e.kind() == NotFound => (),
         Err(e) => Err(e)?,
-        Ok(link_target) => if link_target == source {
-            fs::remove_file(target)?;
-        } else {
-            return Err(PromptErrors::InstallationError(format!(
-                "cowardly refusing to delete weird link to {:?}",
-                link_target
-            )))
+        Ok(link_target) => {
+            if link_target == source {
+                fs::remove_file(target)?;
+            } else {
+                return Err(PromptErrors::InstallationError(format!(
+                    "cowardly refusing to delete weird link to {:?}",
+                    link_target
+                )));
+            }
         },
     }
     Ok(())

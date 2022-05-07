@@ -192,14 +192,11 @@ impl version_control_plugin::Server for Git {
             if !is_directory_usable(&vc_dir) {
                 return Ok(None);
             }
-            Ok(Some((
-                params.get_branch_only(),
-                GitRequest {
-                    handle: handle,
-                    work_dir: work_dir,
-                    vc_dir: vc_dir,
-                },
-            )))
+            Ok(Some((params.get_branch_only(), GitRequest {
+                handle: handle,
+                work_dir: work_dir,
+                vc_dir: vc_dir,
+            })))
         })
         .and_then(move |o| match o {
             None => Box::new(future::ok(())),

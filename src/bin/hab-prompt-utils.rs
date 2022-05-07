@@ -13,8 +13,6 @@ use std::io::stdout;
 use std::{path, process, time};
 
 use futures::Future;
-use hsl::HSL;
-
 use helper_bins::colors::make_theme;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
@@ -22,8 +20,9 @@ use helper_bins::errors::PromptResult as Result;
 use helper_bins::installer::install_from_manifest;
 use helper_bins::plugins::{BoxFuture, PluginLoader, TestVcDirService};
 use helper_bins::ssh_proxy::ssh_proxy_command;
-use helper_bins::vc::{git_head_branch, vc_status};
 use helper_bins::utils::default_theme_seed;
+use helper_bins::vc::{git_head_branch, vc_status};
+use hsl::HSL;
 
 fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     use std::io::Write;
@@ -59,7 +58,9 @@ fn zsh_precmd_map(
     Box::new(ret)
 }
 
-fn stringify_theme(theme: BTreeMap<&'static str, HSL>, format: Option<&str>, source: &str) -> Result<String> {
+fn stringify_theme(
+    theme: BTreeMap<&'static str, HSL>, format: Option<&str>, source: &str,
+) -> Result<String> {
     Ok(match format {
         Some("zsh") => {
             let theme_ansi = theme
@@ -214,7 +215,8 @@ fn main() {
         };
         run_in_loop(move |test_vc_dir| zsh_precmd(durations, test_vc_dir))
     } else if let Some(m) = matches.subcommand_matches("color_theme") {
-        let the_string = m.value_of("STRING")
+        let the_string = m
+            .value_of("STRING")
             .map(ToOwned::to_owned)
             .unwrap_or_else(default_theme_seed);
         let theme = make_theme(&the_string);
