@@ -1,28 +1,21 @@
-#[macro_use]
-extern crate clap;
-#[macro_use]
-extern crate serde_json;
-extern crate ansi_term;
-extern crate futures;
-extern crate helper_bins;
-extern crate hsl;
-extern crate tokio_core;
-
 use std::collections::BTreeMap;
+use std::future::Future;
 use std::io::stdout;
 use std::{path, process, time};
 
-use futures::Future;
+use clap::{clap_app, values_t};
 use helper_bins::colors::make_theme;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
 use helper_bins::errors::PromptResult as Result;
 use helper_bins::installer::install_from_manifest;
-use helper_bins::plugins::{BoxFuture, PluginLoader, TestVcDirService};
 use helper_bins::ssh_proxy::ssh_proxy_command;
-use helper_bins::utils::default_theme_seed;
-use helper_bins::vc::{git_head_branch, vc_status};
+use helper_bins::utils::{default_theme_seed, VcsPlugin};
+use helper_bins::vc::{git_head_branch, vc_status, Git};
 use hsl::HSL;
+use serde_json::json;
+use tokio::io::AsyncWriteExt;
+use tokio::runtime::Handle;
 
 fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     use std::io::Write;
@@ -35,27 +28,20 @@ fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     Ok(())
 }
 
-fn zsh_precmd_map(
-    timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService,
-) -> BoxFuture<BTreeMap<&'static str, String>> {
-    let ret = futures::lazy(move || {
-        let mut results = BTreeMap::new();
-        if let Some((before, after)) = timers {
-            let span = after - before;
-            results.insert("duration", format!("{}", PrettyDuration(span)));
-        } else {
-            results.insert("duration", "—".to_string());
-        }
-        results.insert("files", file_count()?);
-        Ok(results)
-    });
-    let ret = ret
-        .join(vc_status(test_vc_dir))
-        .and_then(|(mut results, status)| {
-            results.insert("vc", status);
-            Ok(results)
-        });
-    Box::new(ret)
+async fn zsh_precmd_map(
+    timers: Option<(time::Duration, time::Duration)>, vcs: &dyn VcsPlugin,
+) -> Result<BTreeMap<&'static str, String>> {
+    let mut results = BTreeMap::new();
+    if let Some((before, after)) = timers {
+        let span = after - before;
+        results.insert("duration", format!("{}", PrettyDuration(span)));
+    } else {
+        results.insert("duration", "—".to_string());
+    }
+    results.insert("files", file_count()?);
+    let status = vc_status(vcs).await?;
+    results.insert("vc", status);
+    Ok(results)
 }
 
 fn stringify_theme(
@@ -120,31 +106,34 @@ fn zsh_map_string(map: &BTreeMap<&'static str, String>) -> String {
     ret
 }
 
-fn zsh_precmd(
-    timers: Option<(time::Duration, time::Duration)>, test_vc_dir: TestVcDirService,
-) -> BoxFuture<()> {
-    let ret = zsh_precmd_map(timers, test_vc_dir)
-        .and_then(|map| {
-            let map_str = zsh_map_string(&map);
-            tokio_core::io::write_all(stdout(), map_str.into_bytes()).map_err(Into::into)
-        })
-        .map(|_| ());
-    Box::new(ret)
+async fn zsh_precmd(
+    timers: Option<(time::Duration, time::Duration)>, vcs: &dyn VcsPlugin,
+) -> Result<()> {
+    let map = zsh_precmd_map(timers, vcs).await?;
+    let map_str = zsh_map_string(&map);
+    tokio::io::stdout().write_all(map_str.as_bytes()).await?;
+    Ok(())
 }
 
-fn run_in_loop<F, T>(func: F) -> Result<T>
+fn run_in_loop<FN, Fut, T>(func: FN) -> T
 where
-    F: FnOnce(TestVcDirService) -> BoxFuture<T>,
+    FN: FnOnce(&'static dyn VcsPlugin) -> Fut,
+    Fut: Future<Output = T>,
 {
-    let mut lp = tokio_core::reactor::Core::new()?;
-    let fut = PluginLoader::new(lp.handle())
-        .load_builtin_plugins()
-        .load_plugins()
-        .and_then(|loader| func(loader.spawn()));
-    lp.run(fut)
+    let handle = Handle::current();
+    let fut = func(&Git);
+    handle.block_on(fut)
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    let () = Handle::current()
+        .spawn_blocking(blocking_main)
+        .await
+        .unwrap_or_else(|err| panic!("join error? {:?}", err));
+}
+
+fn blocking_main() {
     let matches = clap_app!
     (hab_utils =>
      (version: "0.1")

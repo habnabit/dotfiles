@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::{env, process};
 
+use lazy_static::lazy_static;
 use regex;
 
 use super::errors::{PromptErrors, PromptResult as Result};

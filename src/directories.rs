@@ -3,11 +3,12 @@ use std::fs;
 
 use super::errors::PromptResult as Result;
 use super::utils::{format_counts, limited_foreach, IncrementalMap};
+use crate::utils::FileCounts;
 
 const FILE_ORDER: &'static str = ".-/l?";
 
-fn count_files() -> Result<(BTreeMap<char, usize>, bool)> {
-    let mut counts = BTreeMap::new();
+fn count_files() -> Result<(FileCounts, bool)> {
+    let mut counts = <FileCounts as Default>::default();
     let truncated = limited_foreach(fs::read_dir(".")?, |entry| {
         let entry = entry?;
         match entry.file_name().as_os_str().to_str() {

@@ -57,16 +57,4 @@ impl From<::std::string::FromUtf8Error> for PromptErrors {
     }
 }
 
-impl From<::futures::Canceled> for PromptErrors {
-    fn from(e: ::futures::Canceled) -> PromptErrors {
-        PromptErrors::Boxed(Box::new(e))
-    }
-}
-
-impl From<::capnp::Error> for PromptErrors {
-    fn from(e: ::capnp::Error) -> PromptErrors {
-        PromptErrors::Boxed(Box::new(e))
-    }
-}
-
 pub type PromptResult<T> = Result<T, PromptErrors>;
