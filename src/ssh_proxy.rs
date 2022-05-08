@@ -60,7 +60,7 @@ fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
 }
 
 pub fn ssh_proxy_command(
-    host: &str, port: &str, args: Option<&mut dyn Iterator<Item = &OsStr>>,
+    host: &str, port: &str, args: &mut dyn Iterator<Item = &OsStr>,
 ) -> Result<process::Command> {
     let (target, host) = parse_ssh_proxy_host(host)?;
     let ssh_cmd = if let Ok(ssh) = env::var("SSH_PROXY_SSH") {
@@ -70,10 +70,8 @@ pub fn ssh_proxy_command(
     };
     let mut cmd = process::Command::new(&*ssh_cmd);
     cmd.arg("-enone");
-    if let Some(args) = args {
-        for arg in args {
-            cmd.arg(arg);
-        }
+    for arg in args {
+        cmd.arg(arg);
     }
     if let Ok(extra) = env::var("SSH_PROXY_EXTRA_ARGS") {
         for arg in extra.split_whitespace() {

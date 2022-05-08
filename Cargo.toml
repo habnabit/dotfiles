@@ -15,7 +15,7 @@ ansi_term = "0.12.1"
 anyhow = "1.0.57"
 async-trait = "0.1.53"
 blake2 = "0.10.4"
-clap = {version = "*", features = ["unstable"]}
+clap = {version = "3.1.17", features = ["derive"]}
 hsl = "0.1.1"
 lazy_static = "1.4.0"
 rand = "0.8.5"
