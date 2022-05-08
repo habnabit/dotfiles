@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use super::errors::PromptResult as Result;
+use anyhow::Result;
+
 use super::utils::{limited_foreach, IncrementalMap};
 
 #[derive(Debug, Clone, Default)]

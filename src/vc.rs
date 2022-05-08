@@ -3,11 +3,11 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::from_utf8;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use tokio::io::AsyncBufReadExt;
 use tokio::process::{Child, Command};
 
-use super::errors::PromptResult as Result;
 use super::utils::IncrementalMap;
 use crate::directories::FileCounts;
 use crate::plugins::{VcsPlugin, VcsStatus};

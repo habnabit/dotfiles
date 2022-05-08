@@ -4,11 +4,11 @@ use std::io::stdout;
 use std::path::PathBuf;
 use std::time;
 
+use anyhow::{Context, Result};
 use clap::{ArgEnum, Args, Parser, Subcommand};
 use helper_bins::colors::make_theme;
 use helper_bins::directories::file_count;
 use helper_bins::durations::PrettyDuration;
-use helper_bins::errors::PromptResult as Result;
 use helper_bins::installer::install_from_manifest;
 use helper_bins::plugins::PluginLoader;
 use helper_bins::ssh_proxy::ssh_proxy_command;
@@ -118,7 +118,7 @@ async fn zsh_precmd(
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<()> {
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(tracing::Level::TRACE)
         .finish();
@@ -280,8 +280,13 @@ fn blocking_main(plugins: &PluginLoader) -> Result<()> {
                 actually_emit(format!("would run: {:?}\n", ssh_command), true)?;
             }
         },
-        Commands::Install(cmd) => {
-            install_from_manifest(&cmd.manifest, &cmd.target.unwrap_or_else(|| "_spam".into()))?;
+        Commands::Install(mut cmd) => {
+            let target = cmd.target.get_or_insert_with(|| {
+                cmd.dry_run = true;
+                "/".into()
+            });
+            install_from_manifest(cmd.dry_run, &cmd.manifest, &*target)
+                .with_context(|| format!("whilst installing: {:#?}", cmd))?;
         },
     }
     Ok(())

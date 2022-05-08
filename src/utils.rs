@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use super::errors::PromptResult as Result;
+use anyhow::Result;
 
 pub const ITERATION_LIMIT: usize = 1000;
 

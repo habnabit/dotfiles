@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
+use anyhow::Result;
 use async_trait::async_trait;
 
-use super::errors::PromptResult as Result;
 use crate::directories::FileCounts;
 use crate::errors::PromptErrors;
 use crate::utils::path_dev;
@@ -116,7 +116,7 @@ impl PluginLoader {
                 inner: VcsStatus { branch, .. },
                 ..
             }) if !branch.is_empty() => Ok(branch),
-            _ => Err(PromptErrors::NoHead),
+            _ => anyhow::bail!(PromptErrors::NoHead),
         }
     }
 }

@@ -1,11 +1,13 @@
 use std::borrow::Cow;
+use std::env;
 use std::ffi::OsStr;
-use std::{env, process};
+use std::process::Command;
 
+use anyhow::Result;
 use lazy_static::lazy_static;
 use regex;
 
-use super::errors::{PromptErrors, PromptResult as Result};
+use super::errors::PromptErrors;
 
 enum SshProxyTarget<'a> {
     Jail(&'a str),
@@ -13,7 +15,7 @@ enum SshProxyTarget<'a> {
 }
 
 impl<'a> SshProxyTarget<'a> {
-    fn with_ssh_args(self, host: &str, port: &str, mut cmd: process::Command) -> process::Command {
+    fn with_ssh_args(self, host: &str, port: &str, mut cmd: Command) -> Command {
         use self::SshProxyTarget::*;
         match self {
             Jail(jail) => {
@@ -46,7 +48,7 @@ lazy_static! {
 fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
     let matches = match SSH_PROXY_PATTERN.captures(host) {
         Some(m) => m,
-        None => return Err(PromptErrors::InvalidSshProxy(host.to_owned())),
+        None => anyhow::bail!(PromptErrors::InvalidSshProxy(host.to_owned())),
     };
     let host = matches.name("host").unwrap();
     let target = if let Some(j) = matches.name("jail") {
@@ -61,14 +63,14 @@ fn parse_ssh_proxy_host(host: &str) -> Result<(SshProxyTarget, &str)> {
 
 pub fn ssh_proxy_command(
     host: &str, port: &str, args: &mut dyn Iterator<Item = &OsStr>,
-) -> Result<process::Command> {
+) -> Result<Command> {
     let (target, host) = parse_ssh_proxy_host(host)?;
     let ssh_cmd = if let Ok(ssh) = env::var("SSH_PROXY_SSH") {
         Cow::Owned(ssh)
     } else {
         Cow::Borrowed("ssh")
     };
-    let mut cmd = process::Command::new(&*ssh_cmd);
+    let mut cmd = Command::new(&*ssh_cmd);
     cmd.arg("-enone");
     for arg in args {
         cmd.arg(arg);
