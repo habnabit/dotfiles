@@ -19,60 +19,68 @@ fn maybe_mkdir(for_file_at: &Path) -> Result<()> {
     Ok(())
 }
 
-fn action_exists(source: &Path, _: &Path) -> Result<()> {
-    tracing::info!(?source, "touching");
-    println!("Ensuring the existence of {:?}.", source);
-    maybe_mkdir(source)?;
+#[derive(Debug, Clone, Copy)]
+struct InstallContext<'r> {
+    dry_run: bool,
+    source: &'r Path,
+    target: &'r Path,
+}
+
+fn action_exists(i: InstallContext) -> Result<()> {
+    tracing::info!(?i, "touching");
+    maybe_mkdir(i.source)?;
     let _ = fs::OpenOptions::new()
         .append(true)
         .create(true)
-        .open(source)
-        .with_context(|| format!("whilst touching {:?}", source))?;
+        .open(i.source)
+        .with_context(|| format!("whilst touching {:?}", i.source))?;
     Ok(())
 }
 
-fn action_install(source: &Path, target: &Path) -> Result<()> {
-    tracing::info!(?source, ?target, "installing");
-    match fs::symlink_metadata(target) {
+fn action_install(i: InstallContext) -> Result<()> {
+    tracing::info!(?i, "installing");
+    match fs::symlink_metadata(i.target) {
         Err(e) if e.kind() == NotFound => (),
-        Err(e) => Err(e).with_context(|| format!("whilst stat {:?}", target))?,
+        Err(e) => Err(e).with_context(|| format!("whilst stat {:?}", i.target))?,
         Ok(m) => match m.file_type() {
             t if t.is_dir() => {
                 anyhow::bail!(PromptErrors::InstallationError(format!(
                     "cowardly refusing to delete extant directory {:?}",
-                    target
+                    i.target
                 )));
             },
             t if t.is_file() => {
-                let prompt = format!("Delete extant file {:?}", target);
+                let prompt = format!("Delete extant file {:?}", i.target);
                 if confirm(&prompt, true, "? ", true) {
-                    fs::remove_file(target)?;
+                    fs::remove_file(i.target)?;
                 } else {
                     anyhow::bail!(PromptErrors::InstallationError(format!(
                         "not deleting {:?}",
-                        target
+                        i.target
                     )));
                 }
             },
-            t if t.is_symlink() => fs::remove_file(target)?,
+            t if t.is_symlink() => fs::remove_file(i.target)?,
             t => {
                 anyhow::bail!(PromptErrors::InstallationError(format!(
                     "can't figure out what {:?} is: {:#?}",
-                    target, t
+                    i.target, t
                 )))
             },
         },
     }
-    maybe_mkdir(target)?;
-    symlink(source, target)
-        .with_context(|| format!("whilst symlinking {:?} -> {:?}", source, target))?;
+    maybe_mkdir(i.target)?;
+    symlink(i.source, i.target)
+        .with_context(|| format!("whilst symlinking {:?} -> {:?}", i.source, i.target))?;
     Ok(())
 }
 
 fn find_files_to_assemble(source: &Path) -> Result<Vec<PathBuf>> {
-    let mut files = fs::read_dir(source)?
+    let mut files = fs::read_dir(source)
+        .with_context(|| format!("whilst read_dir on {:?}", source))?
         .map(|r| r.map(|e| (None, None, e.path())))
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .with_context(|| format!("whilst parsing read_dir on {:?}", source))?;
     for (number, letter, path) in &mut files {
         match path.file_name().and_then(|f| f.to_str()) {
             Some(f) => {
@@ -97,57 +105,69 @@ fn find_files_to_assemble(source: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-fn assemble_files(source: &Path, target: &Path) -> Result<()> {
-    let files = find_files_to_assemble(source)?;
-    maybe_mkdir(target)?;
-    let out = tempfile::Builder::new()
-        .prefix("_tmp")
-        .tempfile_in(target.parent().unwrap_or_else(|| unimplemented!()));
-    let mut out = out?;
+fn assemble_files(i: InstallContext) -> Result<()> {
+    let files = find_files_to_assemble(i.source).context("find_files_to_assemble")?;
+    maybe_mkdir(i.target)?;
+    let mut out = {
+        let mut b = tempfile::Builder::new();
+        b.prefix("_tmp");
+        if i.dry_run {
+            b.tempfile()
+        } else {
+            b.tempfile_in(i.target.parent().unwrap_or_else(|| unimplemented!()))
+        }
+        .with_context(|| format!("whilst making tempdir adjacent {:?}", i.target))?
+    };
     for file in files {
         let mut file = fs::OpenOptions::new().read(true).open(file)?;
         io::copy(&mut file, &mut out)?;
         io::Write::write_all(&mut out, b"\n\n\n")?;
     }
-    out.persist(target).map_err(|e| e.error)?;
+    out.persist(i.target).map_err(|e| e.error)?;
     Ok(())
 }
 
-fn action_assemble(source: &Path, target: &Path) -> Result<()> {
-    let mut source: PathBuf = source.into();
+fn action_assemble(i: InstallContext) -> Result<()> {
+    let mut source: PathBuf = i.source.into();
     let mut source_name: OsString = source
         .file_name()
         .unwrap_or_else(|| unimplemented!())
         .into();
     source_name.push(".d");
     source.set_file_name(source_name);
-    tracing::info!(?source, ?target, "assembling");
+    tracing::info!(?i, "assembling");
     let assembled_file = source.join("_assembled");
-    assemble_files(&source, &assembled_file)?;
-    action_install(&assembled_file, target)?;
+    assemble_files(InstallContext {
+        source: source.as_path(),
+        target: assembled_file.as_path(),
+        ..i
+    })
+    .with_context(|| format!("whilst assembling {:?}", assembled_file))?;
+    action_install(InstallContext {
+        source: assembled_file.as_path(),
+        ..i
+    })
+    .with_context(|| format!("whilst installing {:?}", assembled_file))?;
     Ok(())
 }
 
-fn action_uninstall(source: &Path, target: &Path) -> Result<()> {
-    tracing::info!(?target, "uninstalling");
-    match fs::read_link(target) {
+fn action_uninstall(i: InstallContext) -> Result<()> {
+    tracing::info!(?i, "uninstalling");
+    match fs::read_link(i.target) {
         Err(e) if e.kind() == NotFound => (),
         Err(e) => Err(e)?,
-        Ok(link_target) => {
-            if link_target == source {
-                fs::remove_file(target)?;
-            } else {
-                anyhow::bail!(PromptErrors::InstallationError(format!(
-                    "cowardly refusing to delete weird link to {:?}",
-                    link_target
-                )));
-            }
+        Ok(link_target) if link_target == i.source => {
+            fs::remove_file(i.target)?;
         },
-    }
+        Ok(link_target) => anyhow::bail!(PromptErrors::InstallationError(format!(
+            "cowardly refusing to delete weird link to {:?}",
+            link_target
+        ))),
+    };
     Ok(())
 }
 
-static ACTIONS: &'static [(&'static str, fn(&Path, &Path) -> Result<()>)] = &[
+static ACTIONS: &'static [(&'static str, fn(InstallContext) -> Result<()>)] = &[
     ("exists", action_exists),
     ("install", action_install),
     ("!install", action_uninstall),
@@ -200,10 +220,13 @@ pub fn install_from_manifest(dry_run: bool, manifest: &Path, target_dir: &Path) 
             })
             .next()
             .unwrap_or_else(|| unimplemented!());
-        tracing::info!(action = ?name, ?source, ?target);
-        if !dry_run {
-            action(&source, &target).with_context(|| format!("whilst evaluating {:?}", splut))?;
-        }
+        let i = InstallContext {
+            dry_run,
+            source: source.as_path(),
+            target: target.as_path(),
+        };
+        tracing::info!(action = ?name, ?source, ?target, ?i);
+        action(i).with_context(|| format!("whilst evaluating {:?}", splut))?;
     }
     Ok(())
 }
