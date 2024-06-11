@@ -13,7 +13,7 @@ jobs:
       matrix:
         target:
           - arm-unknown-linux-gnueabihf
-          - x86_64-unknown-freebsd
+          #- x86_64-unknown-freebsd
           - x86_64-unknown-linux-musl
 
     steps:
@@ -139,7 +139,7 @@ jobs:
           mv ./prompt-utils-arm-unknown-linux-gnueabihf/hab-prompt-utils lfs-Linux-armv6l
           mv ./prompt-utils-x86_64-apple-darwin/hab-prompt-utils lfs-Darwin-x86_64
           mv ./prompt-utils-aarch64-apple-darwin/hab-prompt-utils lfs-Darwin-arm64
-          mv ./prompt-utils-x86_64-unknown-freebsd/hab-prompt-utils lfs-FreeBSD-amd64
+          #mv ./prompt-utils-x86_64-unknown-freebsd/hab-prompt-utils lfs-FreeBSD-amd64
           mv ./prompt-utils-x86_64-unknown-linux-musl/hab-prompt-utils lfs-Linux-x86_64
           chmod +x */hab-prompt-utils
 
