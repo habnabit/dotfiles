@@ -30,11 +30,10 @@ jobs:
         run: sudo apt-get install -y build-essential capnproto musl-tools
 
       - name: install rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
+          components: ''
 
       - name: deal with rust cache
         uses: Swatinem/rust-cache@v1
@@ -56,10 +55,7 @@ jobs:
 
       - name: build cargo-cross
         if: steps.cache-cargo-cross.outputs.cache-hit != 'true'
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --force --git https://github.com/rust-embedded/cross
+        run: cargo install --force --git https://github.com/rust-embedded/cross
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v1
@@ -76,11 +72,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: rust build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --target ${{ matrix.target }} --release
+        run: cross build --target ${{ matrix.target }} --release
 
       - name: copy out
         uses: actions/upload-artifact@v2
@@ -108,20 +100,16 @@ jobs:
           brew install capnp
 
       - name: install rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
+          components: ''
 
       - name: deal with rust cache
         uses: Swatinem/rust-cache@v1
 
       - name: rust build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target ${{ matrix.target }} --release
+        run: cargo build --target ${{ matrix.target }} --release
 
       - name: copy out
         uses: actions/upload-artifact@v2
