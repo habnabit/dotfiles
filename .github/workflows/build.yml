@@ -55,7 +55,7 @@ jobs:
 
       - name: build cargo-cross
         if: steps.cache-cargo-cross.outputs.cache-hit != 'true'
-        run: cargo install --force --git https://github.com/rust-embedded/cross
+        run: cargo install --force --git https://github.com/rust-embedded/cross cross
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v1
