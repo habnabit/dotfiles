@@ -17,6 +17,8 @@ use hsl::HSL;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
 use tokio::runtime::Handle;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 fn actually_emit(s: String, no_newline: bool) -> Result<()> {
     use std::io::Write;
@@ -119,11 +121,10 @@ async fn zsh_precmd(
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber)?;
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::from_default_env())
+        .with(tracing_subscriber::fmt::layer().with_writer(std::io::stderr))
+        .init();
 
     std::panic::set_hook(Box::new(|panic| {
         if let Some(location) = panic.location() {
