@@ -16,6 +16,7 @@ fn rng_of_str(input: &str) -> ChaChaRng {
     <ChaChaRng as rand_chacha::rand_core::SeedableRng>::seed_from_u64(condensed)
 }
 
+#[expect(dead_code)]
 trait HslExt {
     fn rotate(self, degrees: f64) -> Self;
     fn saturate(self, amount: f64) -> Self;
