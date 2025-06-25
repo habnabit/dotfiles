@@ -24,16 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: install rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-          components: ''
-          force-use-cross: ${{ matrix.use-cross }}
-
       - name: rust build
-        run: |
-          cargo build --locked --release --target=${{ matrix.target }}
+        uses: houseabsolute/actions-rust-cross@v1
+        with:
+          target: ${{ matrix.target }}
+          force-use-cross: ${{ matrix.use-cross }}
+          args: |
+            --locked --release
 
       - name: copy out
         uses: actions/upload-artifact@v4
