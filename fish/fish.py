@@ -231,14 +231,14 @@ class BirdLook(MultiLineFishPrinter):
 
 class DuckLook(MultiLineFishPrinter):
     # ASCII art crediT: jgs
-    duck = docstring2lines("""
+    duck = docstring2lines(r"""
      _ 
 \. _(9>
  \==_) 
   -'=  
 """)
 
-    duck_rev = docstring2lines("""
+    duck_rev = docstring2lines(r"""
  _     
 <6)_ ,/
  (_==/ 

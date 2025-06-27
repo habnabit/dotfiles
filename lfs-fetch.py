@@ -42,7 +42,7 @@ def file_matches(infile, size, sha256):
 
 def main(config_path, desc_path, target_path):
     massaged = io.StringIO()
-    with io.open(config_path, 'rU') as infile:
+    with io.open(config_path, 'r') as infile:
         massaged.writelines(line.lstrip() for line in infile)
     massaged.seek(0)
     config = RawConfigParser()
@@ -50,7 +50,7 @@ def main(config_path, desc_path, target_path):
     lfs_url = config.get('lfs', 'url').strip('"')
     api_url = posixpath.join(lfs_url, 'objects', 'batch')
 
-    with io.open(desc_path, 'rU') as infile:
+    with io.open(desc_path, 'r') as infile:
         target = dict(line.strip().partition(' ')[::2] for line in infile)
     if target.get('version') != 'https://git-lfs.github.com/spec/v1':
         raise ValueError("can't handle lfs", target['version'])
